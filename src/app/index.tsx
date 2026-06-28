@@ -3,31 +3,30 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentShell } from '@/components/ContentShell';
+import { KeepAwakeToggle } from '@/components/KeepAwakeToggle';
 import { PoemCard } from '@/components/PoemCard';
 import { SearchBar } from '@/components/SearchBar';
-import { TagFilter } from '@/components/TagFilter';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import poemsData from '@/data/poems.json';
-import { allTags, filterPoems } from '@/lib/search';
-import type { Poem } from '@/lib/types';
+import { poems } from '@/lib/loadPoems';
+import { filterPoems } from '@/lib/search';
 
-const poems = poemsData as unknown as Poem[];
+function PoemDivider() {
+  const c = useTheme();
+  return (
+    <View style={styles.dividerWrap}>
+      <View style={[styles.divider, { backgroundColor: c.border }]} />
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState('');
-  const [activeTags, setActiveTags] = useState<string[]>([]);
 
-  const tags = useMemo(() => allTags(poems), []);
-  const results = useMemo(() => filterPoems(poems, query, activeTags), [query, activeTags]);
-
-  const toggleTag = (tag: string) =>
-    setActiveTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+  const results = useMemo(() => filterPoems(poems, query, []), [query]);
 
   return (
     <ContentShell style={{ backgroundColor: c.background }}>
@@ -39,12 +38,12 @@ export default function HomeScreen() {
           styles.content,
           { paddingBottom: insets.bottom + Spacing.four },
         ]}
-        ItemSeparatorComponent={() => <View style={{ height: Spacing.two }} />}
+        ItemSeparatorComponent={PoemDivider}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.header}>
             <SearchBar value={query} onChange={setQuery} />
-            <TagFilter tags={tags} active={activeTags} onToggle={toggleTag} />
+            <KeepAwakeToggle />
           </View>
         }
         ListEmptyComponent={
@@ -60,7 +59,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.three,
-    gap: Spacing.two,
+  },
+  dividerWrap: {
+    paddingVertical: Spacing.three,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
   },
   header: {
     gap: Spacing.two,

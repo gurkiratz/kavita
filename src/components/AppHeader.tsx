@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
 import { ContentMaxWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -16,11 +17,12 @@ type AppHeaderProps = {
       | ((props: { children: string; tintColor?: string }) => ReactNode);
     headerBackTitle?: string;
   };
+  route: { name: string };
   back?: { title?: string } | undefined;
-  navigation: { goBack: () => void };
+  navigation: { goBack: () => void; canGoBack: () => boolean };
 };
 
-export function AppHeader({ options, back, navigation }: AppHeaderProps) {
+export function AppHeader({ options, route, back, navigation }: AppHeaderProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -30,6 +32,15 @@ export function AppHeader({ options, back, navigation }: AppHeaderProps) {
       : options.title ?? "";
 
   const backLabel = options.headerBackTitle ?? back?.title ?? "Back";
+  const showBack = route.name !== "index";
+
+  const onBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace("/");
+    }
+  };
 
   return (
     <View
@@ -44,12 +55,8 @@ export function AppHeader({ options, back, navigation }: AppHeaderProps) {
     >
       <View style={styles.inner}>
         <View style={styles.side}>
-          {back ? (
-            <Pressable
-              onPress={navigation.goBack}
-              hitSlop={8}
-              style={styles.back}
-            >
+          {showBack ? (
+            <Pressable onPress={onBack} hitSlop={8} style={styles.back}>
               <Text style={[styles.backText, { color: c.accent }]}>
                 {Platform.OS === "ios" ? `‹ ${backLabel}` : `← ${backLabel}`}
               </Text>

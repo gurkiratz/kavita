@@ -5,7 +5,7 @@ export type LocalizedText = {
 };
 
 /**
- * A single poem. Only `title` and `tags` are guaranteed; everything else is
+ * A single poem. Only `id` and `title` are guaranteed; everything else is
  * optional so a poem can be added as just a title (and image) and transcribed later.
  */
 export type Poem = {
@@ -23,5 +23,6 @@ export type Poem = {
   poet?: string;
   /** Optional attribution / recording credit, shown as a caption. */
   source?: string;
-  tags: string[];
+  /** Optional filter labels; omit or leave empty when none apply. */
+  tags?: string[];
 };

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,7 +18,12 @@ export function SearchBar({ value, onChange }: Props) {
         onChangeText={onChange}
         placeholder="ਖੋਜੋ · Search in Punjabi or English"
         placeholderTextColor={c.textSecondary}
-        style={[styles.input, { color: c.text }]}
+        style={[
+          styles.input,
+          { color: c.text },
+          // Web-only: remove the default focus outline (not in RN's TextStyle types).
+          Platform.OS === 'web' && ({ outlineStyle: 'none', outlineWidth: 0 } as object),
+        ]}
         autoCorrect={false}
         autoCapitalize="none"
         returnKeyType="search"

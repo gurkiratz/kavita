@@ -9,6 +9,8 @@ fully offline.
 | What | Where |
 |------|-------|
 | All poem text + metadata | [`src/data/poems.json`](src/data/poems.json) |
+| Long Gurmukhi/Roman bodies | [`src/data/text/`](src/data/text/) |
+| Register external text | [`src/lib/poemTextMap.ts`](src/lib/poemTextMap.ts) |
 | Scan image files | [`assets/scans/`](assets/scans/) |
 | Registering each image | [`src/lib/imageMap.ts`](src/lib/imageMap.ts) |
 | The shape of a poem (types) | [`src/lib/types.ts`](src/lib/types.ts) |
@@ -30,16 +32,37 @@ fully offline.
   "roman":    "…",                            // optional — Roman transliteration body
   "poet":     "",                             // optional
   "source":   "",                             // optional — credit/recording caption
-  "tags":     ["Itihaas", "Veer Ras"]         // REQUIRED key — use [] if none
+  "tags":     ["Itihaas", "Veer Ras"]         // optional — filter labels
 }
 ```
 
-**Only `id`, `title`, and `tags` are required.** Everything else is optional, so you can add a
+**Only `id` and `title` are required.** Everything else is optional, so you can add a
 poem as just a title (and image) and fill in the transcription later.
 
-### The one gotcha: line breaks
-JSON strings can't contain real newlines. Use `\n` for a line break and `\n\n` for a blank
-line between stanzas:
+### Long poem bodies (paste-friendly)
+
+JSON can't contain real line breaks, so for long Gurmukhi/Roman text use a separate file:
+
+| What | Where |
+|------|-------|
+| Metadata (title, images, id…) | [`src/data/poems.json`](src/data/poems.json) |
+| Long Gurmukhi body | [`src/data/text/<id>.gurmukhi.ts`](src/data/text/) |
+| Long Roman body | [`src/data/text/<id>.roman.ts`](src/data/text/) |
+| Register external text | [`src/lib/poemTextMap.ts`](src/lib/poemTextMap.ts) |
+
+Open `src/data/text/bhai-saida.gurmukhi.ts` as an example — paste your text **inside the backticks** with normal line breaks. No `\n` needed.
+
+```ts
+export default `ਪਹਿਲੀ ਸਤਰ।
+ਦੂਜੀ ਸਤਰ।
+
+ਨਵਾਂ ਬੰਦ।`;
+```
+
+Then add the poem id to `poemTextMap.ts`. Short poems can still use `"gurmukhi": "…"` inline in JSON with `\n` for line breaks.
+
+### Short inline text in JSON
+For brief bodies, JSON strings still work — use `\n` for a line break and `\n\n` for a blank line:
 
 ```json
 "gurmukhi": "ਪਹਿਲੀ ਸਤਰ।\nਦੂਜੀ ਸਤਰ।\n\nਨਵਾਂ ਬੰਦ।"
@@ -63,8 +86,7 @@ Append a new object to the array. Minimum viable poem:
 ```json
 {
   "id": "meri-navi-kavita",
-  "title": { "gurmukhi": "ਮੇਰੀ ਨਵੀਂ ਕਵਿਤਾ", "roman": "Meri Navi Kavita" },
-  "tags": []
+  "title": { "gurmukhi": "ਮੇਰੀ ਨਵੀਂ ਕਵਿਤਾ", "roman": "Meri Navi Kavita" }
 }
 ```
 

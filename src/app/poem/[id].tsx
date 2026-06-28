@@ -7,11 +7,8 @@ import { ContentShell } from '@/components/ContentShell';
 import { PoemImages } from '@/components/PoemImages';
 import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import poemsData from '@/data/poems.json';
+import { poems } from '@/lib/loadPoems';
 import { getScan } from '@/lib/imageMap';
-import type { Poem } from '@/lib/types';
-
-const poems = poemsData as unknown as Poem[];
 
 type Script = 'gurmukhi' | 'roman';
 
@@ -45,7 +42,7 @@ export default function PoemScreen() {
   return (
     <ContentShell style={{ backgroundColor: c.background }}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.six }]}>
-      <Stack.Screen options={{ title: poem.title.roman }} />
+      <Stack.Screen options={{ title: poem.title.gurmukhi }} />
 
       {scans.length > 0 && <PoemImages sources={scans} alt={poem.title.roman} />}
 

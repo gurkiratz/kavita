@@ -46,7 +46,8 @@ export function matchesQuery(poem: Poem, query: string): boolean {
 
 /** A poem matches when it carries every active tag (AND). */
 export function matchesTags(poem: Poem, activeTags: string[]): boolean {
-  return activeTags.every((tag) => poem.tags.includes(tag));
+  const tags = poem.tags ?? [];
+  return activeTags.every((tag) => tags.includes(tag));
 }
 
 /** Filter poems by free-text query AND the set of active tags. */
@@ -57,6 +58,6 @@ export function filterPoems(poems: Poem[], query: string, activeTags: string[]):
 /** All distinct tags across the collection, sorted. */
 export function allTags(poems: Poem[]): string[] {
   const set = new Set<string>();
-  poems.forEach((p) => p.tags.forEach((t) => set.add(t)));
+  poems.forEach((p) => (p.tags ?? []).forEach((t) => set.add(t)));
   return Array.from(set).sort();
 }

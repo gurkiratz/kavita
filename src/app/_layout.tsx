@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/AppHeader';
 import { Colors } from '@/constants/theme';
+import { KeepAwakeProvider } from '@/context/KeepAwakeContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function RootLayout() {
@@ -14,15 +15,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Stack
-          screenOptions={{
-            header: (props) => <AppHeader {...props} />,
-            contentStyle: { backgroundColor: c.background },
-          }}>
-          <Stack.Screen name="index" options={{ title: 'ਕਵਿਤਾ' }} />
-          <Stack.Screen name="poem/[id]" options={{ title: '', headerBackTitle: 'Kavita' }} />
-        </Stack>
-        <StatusBar style="auto" />
+        <KeepAwakeProvider>
+          <Stack
+            screenOptions={{
+              header: (props) => <AppHeader {...props} />,
+              contentStyle: { backgroundColor: c.background },
+            }}>
+            <Stack.Screen name="index" options={{ title: 'ਕਵਿਤਾ' }} />
+            <Stack.Screen name="poem/[id]" options={{ title: '', headerBackTitle: 'Kavita' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </KeepAwakeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

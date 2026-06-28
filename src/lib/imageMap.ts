@@ -13,6 +13,12 @@
  */
 const scans: Record<string, number> = {
   "dittha-bajan-walia.jpg": require("../../assets/scans/dittha-bajan-walia.jpg"),
+  "bhai-saida-1.jpg": require("../../assets/scans/bhai-saida-1.jpg"),
+  "bhai-saida-2.jpg": require("../../assets/scans/bhai-saida-2.jpg"),
+  "bhai-saida-3.jpg": require("../../assets/scans/bhai-saida-3.jpg"),
+  "bhai-saida-4.jpg": require("../../assets/scans/bhai-saida-4.jpg"),
+  "lakh-dide-tarsan.jpg": require("../../assets/scans/lakh-dide-tarsan.jpg"),
+  "soolan-te-sogya.jpg": require("../../assets/scans/soolan-te-sogya.jpg"),
 };
 
 /** Resolve a poem's `image` filename to a bundled asset, or undefined if not present. */

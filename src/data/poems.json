@@ -11,5 +11,26 @@
     "poet": "",
     "source": "ਰਿਕਾਰਡ - ਸਰੂਪ ਸਿੰਘ ਨਵਾਂ ਸ਼ਹਿਰ ਵਾਲਿਆਂ ਦੀ ਆਵਾਜ਼",
     "tags": ["Itihaas", "Veer Ras"]
+  },
+  {
+    "id": "bhai-saida",
+    "title": {
+      "gurmukhi": "ਭਾਈ ਸੈਦਾ",
+      "roman": "Bhai Saida"
+    },
+    "images": [
+      "bhai-saida-1.jpg",
+      "bhai-saida-2.jpg",
+      "bhai-saida-3.jpg",
+      "bhai-saida-4.jpg"
+    ]
+  },
+  {
+    "id": "soolan-te-sogya",
+    "title": {
+      "gurmukhi": "ਸੂਲਾਂ ਤੇ ਸੋਗਿਆ",
+      "roman": "Soolan Te Sogya"
+    },
+    "images": ["soolan-te-sogya.jpg"]
   }
 ]
