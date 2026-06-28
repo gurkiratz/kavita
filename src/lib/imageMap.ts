@@ -11,6 +11,8 @@
  *        'dittha-bajan-walia.jpg': require('../../assets/scans/dittha-bajan-walia.jpg'),
  *   3. Set that filename as the poem's `image` field in data/poems.json
  */
+import { REMOTE_DATA_ENABLED, REMOTE_SCANS_BASE_URL } from '@/config';
+
 const scans: Record<string, number> = {
   "dittha-bajan-walia.jpg": require("../../assets/scans/dittha-bajan-walia.jpg"),
   "bhai-saida-1.jpg": require("../../assets/scans/bhai-saida-1.jpg"),
@@ -25,4 +27,23 @@ const scans: Record<string, number> = {
 export function getScan(filename?: string): number | undefined {
   if (!filename) return undefined;
   return scans[filename];
+}
+
+/** An image source expo-image understands: a bundled asset (number) or a remote URL. */
+export type PoemImageSource = number | { uri: string };
+
+/**
+ * Resolve a poem's image reference to a displayable source.
+ * Prefers a bundled scan (instant, offline); falls back to the remote host for
+ * images added after this build; passes through full http(s) URLs as-is.
+ */
+export function resolvePoemImage(ref?: string): PoemImageSource | undefined {
+  if (!ref) return undefined;
+  if (/^https?:\/\//i.test(ref)) return { uri: ref };
+  const bundled = scans[ref];
+  if (bundled != null) return bundled;
+  if (REMOTE_DATA_ENABLED && REMOTE_SCANS_BASE_URL) {
+    return { uri: `${REMOTE_SCANS_BASE_URL}/${ref}` };
+  }
+  return undefined;
 }

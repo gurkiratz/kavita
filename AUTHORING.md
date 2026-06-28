@@ -155,3 +155,56 @@ restart `npx expo start`.
 A stray missing comma or quote will break the whole app. Edit in an editor that flags JSON
 errors (e.g. VS Code), or paste the poem to Claude and have it generate the entry (line-break
 escaping + image registration) for you.
+
+---
+
+## Publishing updates online (no app rebuild)
+
+Kavita can fetch the latest poems over the network and cache them offline, so you can add or
+edit poems **without shipping a new app build**. It's **off by default**.
+
+**How it works:** on launch the app shows the last cached poems instantly, then (if online)
+fetches the latest from your host, displays them, and saves them for next time. Precedence is
+**remote > cached > bundled seed**. Bundled images load instantly offline; images added later
+are fetched from the host and cached by `expo-image` on first view. Pull down on the list to
+force a refresh.
+
+### One-time setup (Cloudflare R2)
+1. Sign in (uses `npx`, nothing to install globally):
+   ```bash
+   npx wrangler login
+   ```
+2. Create the bucket, apply CORS, and enable its public URL (run from the project root):
+   ```bash
+   npx wrangler r2 bucket create kavita
+   npx wrangler r2 bucket cors set kavita --file cors.json
+   npx wrangler r2 bucket dev-url enable kavita
+   ```
+   The last command prints your public base URL, e.g. `https://pub-<hash>.r2.dev`.
+   (If your Cloudflare login has multiple accounts, set `CLOUDFLARE_ACCOUNT_ID=<id>` first.)
+3. Paste that base URL into [`src/config.ts`](src/config.ts):
+   ```ts
+   export const REMOTE_POEMS_URL = 'https://pub-<hash>.r2.dev/poems.json';
+   export const REMOTE_SCANS_BASE_URL = 'https://pub-<hash>.r2.dev/scans';
+   ```
+4. Build & install the app **once** so it embeds the URLs.
+
+### Every update after that — no rebuild
+1. Author locally as usual (`poems.json` + text files + images in `assets/scans/`).
+2. Publish:
+   ```bash
+   npm run publish:r2
+   ```
+   This regenerates `remote/poems.json` and uploads it + all scans to the R2 bucket.
+→ The app picks up the change on next launch (or pull-to-refresh) and caches it offline.
+
+(Override the bucket name with `R2_BUCKET=<name> npm run publish:r2` if you didn't use `kavita`.)
+
+### Notes
+- `r2.dev` is rate-limited and meant for light use — fine for a personal app. For heavier traffic
+  or CDN caching, attach a **custom domain** to the bucket and use that URL in `src/config.ts`.
+- CORS (`cors.json`) is required for the **web** build; native apps don't need it.
+- The fetch is cache-busted via a `?t=` query, so updates show up promptly.
+- This covers **content only**. Adding a new native library still needs a real app rebuild.
+- The bundled poems are the offline fallback for a fresh install with no network. Reship them in
+  an app build occasionally if you want new installs to start with recent poems.

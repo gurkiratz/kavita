@@ -13,10 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { PoemImageSource } from '@/lib/imageMap';
 
 type Props = {
-  /** Bundled asset module ids (from require()), in display order. */
-  sources: number[];
+  /** Images in display order — bundled assets or remote URLs. */
+  sources: PoemImageSource[];
   alt?: string;
 };
 
@@ -27,7 +28,7 @@ function ScanImage({
   label,
   bg,
 }: {
-  source: number;
+  source: PoemImageSource;
   onPress: () => void;
   label: string;
   bg: string;
@@ -81,7 +82,7 @@ function ImageViewer({
   startIndex,
   onClose,
 }: {
-  sources: number[];
+  sources: PoemImageSource[];
   startIndex: number | null;
   onClose: () => void;
 }) {

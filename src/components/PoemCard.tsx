@@ -4,14 +4,14 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { getScan } from "@/lib/imageMap";
+import { resolvePoemImage } from "@/lib/imageMap";
 import type { Poem } from "@/lib/types";
 
 type Props = { poem: Poem };
 
 export function PoemCard({ poem }: Props) {
   const c = useTheme();
-  const scan = getScan(poem.images?.[0] ?? poem.image);
+  const scan = resolvePoemImage(poem.images?.[0] ?? poem.image);
 
   return (
     <Link href={{ pathname: "/poem/[id]", params: { id: poem.id } }} asChild>

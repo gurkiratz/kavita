@@ -6,9 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ContentShell } from '@/components/ContentShell';
 import { PoemImages } from '@/components/PoemImages';
 import { Fonts, Spacing } from '@/constants/theme';
+import { usePoems } from '@/context/PoemsContext';
 import { useTheme } from '@/hooks/use-theme';
-import { poems } from '@/lib/loadPoems';
-import { getScan } from '@/lib/imageMap';
+import { resolvePoemImage, type PoemImageSource } from '@/lib/imageMap';
 
 type Script = 'gurmukhi' | 'roman';
 
@@ -16,6 +16,7 @@ export default function PoemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useTheme();
   const insets = useSafeAreaInsets();
+  const { poems } = usePoems();
 
   const poem = poems.find((p) => p.id === id);
   const [script, setScript] = useState<Script>('gurmukhi');
@@ -30,7 +31,9 @@ export default function PoemScreen() {
   }
 
   const imageFiles = poem.images ?? (poem.image ? [poem.image] : []);
-  const scans = imageFiles.map(getScan).filter((s): s is number => s != null);
+  const scans = imageFiles
+    .map(resolvePoemImage)
+    .filter((s): s is PoemImageSource => s != null);
   const hasGurmukhi = !!poem.gurmukhi;
   const hasRoman = !!poem.roman;
   const both = hasGurmukhi && hasRoman;

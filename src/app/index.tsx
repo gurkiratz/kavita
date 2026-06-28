@@ -7,8 +7,8 @@ import { KeepAwakeToggle } from '@/components/KeepAwakeToggle';
 import { PoemCard } from '@/components/PoemCard';
 import { SearchBar } from '@/components/SearchBar';
 import { Spacing } from '@/constants/theme';
+import { usePoems } from '@/context/PoemsContext';
 import { useTheme } from '@/hooks/use-theme';
-import { poems } from '@/lib/loadPoems';
 import { filterPoems } from '@/lib/search';
 
 function PoemDivider() {
@@ -23,10 +23,11 @@ function PoemDivider() {
 export default function HomeScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
+  const { poems, refreshing, refresh } = usePoems();
 
   const [query, setQuery] = useState('');
 
-  const results = useMemo(() => filterPoems(poems, query, []), [query]);
+  const results = useMemo(() => filterPoems(poems, query, []), [poems, query]);
 
   return (
     <ContentShell style={{ backgroundColor: c.background }}>
@@ -40,6 +41,8 @@ export default function HomeScreen() {
         ]}
         ItemSeparatorComponent={PoemDivider}
         keyboardShouldPersistTaps="handled"
+        refreshing={refreshing}
+        onRefresh={refresh}
         ListHeaderComponent={
           <View style={styles.header}>
             <SearchBar value={query} onChange={setQuery} />

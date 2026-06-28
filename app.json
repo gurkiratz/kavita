@@ -8,9 +8,11 @@
     "scheme": "kavita",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.gurkiratsingh.kavita"
     },
     "android": {
+      "package": "com.gurkiratsingh.kavita",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -39,6 +41,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5073f781-5d99-4d42-a6c2-154fec06bbe3"
+      }
+    },
+    "owner": "gurkiratz"
   }
 }

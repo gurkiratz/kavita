@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/AppHeader';
 import { Colors } from '@/constants/theme';
 import { KeepAwakeProvider } from '@/context/KeepAwakeContext';
+import { PoemsProvider } from '@/context/PoemsContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function RootLayout() {
@@ -16,15 +17,17 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <KeepAwakeProvider>
-          <Stack
+          <PoemsProvider>
+            <Stack
             screenOptions={{
               header: (props) => <AppHeader {...props} />,
               contentStyle: { backgroundColor: c.background },
             }}>
             <Stack.Screen name="index" options={{ title: 'ਕਵਿਤਾ' }} />
             <Stack.Screen name="poem/[id]" options={{ title: '', headerBackTitle: 'Kavita' }} />
-          </Stack>
-          <StatusBar style="auto" />
+            </Stack>
+            <StatusBar style="auto" />
+          </PoemsProvider>
         </KeepAwakeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
