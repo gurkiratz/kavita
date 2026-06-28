@@ -208,3 +208,37 @@ force a refresh.
 - This covers **content only**. Adding a new native library still needs a real app rebuild.
 - The bundled poems are the offline fallback for a fresh install with no network. Reship them in
   an app build occasionally if you want new installs to start with recent poems.
+
+---
+
+## Add poems from anywhere (admin web page)
+
+A password-protected web form (the Cloudflare Worker in `worker/`) lets you add poems from any
+device — no laptop, CLI, or JSON editing. It uploads the images and appends to `poems.json` in R2,
+and **line breaks / spacing are preserved automatically** (just paste into the textareas).
+
+### One-time setup
+From the `worker/` folder:
+1. Register a workers.dev subdomain and deploy (answer **yes** to the subdomain prompt and pick a name):
+   ```bash
+   cd worker
+   npx wrangler deploy
+   ```
+   Your admin URL becomes `https://kavita-admin.<subdomain>.workers.dev`.
+2. Set the password that guards writes:
+   ```bash
+   npx wrangler secret put ADMIN_TOKEN
+   ```
+
+### Using it
+- Open the admin URL on any device, enter your password (remembered on that device).
+- Fill in the title (Gurmukhi + Roman), paste the poem text(s) with real line breaks, attach
+  image(s), and **Save**. The poem appears in the app on next launch / pull-to-refresh.
+- The page also lists your **existing poems** (thumbnail + title), app-style, so you can see
+  what's already in the collection; it refreshes after each save.
+
+### Notes
+- The form and the write API are served from the same origin, so there's no CORS to configure.
+- Only requests with the correct password can write; the page is harmless without it.
+- This and `npm run publish:r2` both write to the same R2 bucket — use whichever is handy.
+- Change the password anytime by re-running `npx wrangler secret put ADMIN_TOKEN`.

@@ -1,0 +1,19 @@
+{
+  // Kavita admin Worker: serves the add-poem form and writes to the R2 bucket.
+  // Deploy:  cd worker && npx wrangler deploy
+  // Set the password (one-time):  npx wrangler secret put ADMIN_TOKEN
+  "name": "kavita-admin",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-01",
+  "observability": { "enabled": true },
+  // Public base URL of the R2 bucket — used to render existing-poem thumbnails.
+  "vars": {
+    "R2_PUBLIC_BASE": "https://pub-4730074c0ff04638961b0cf1c2d55537.r2.dev"
+  },
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "kavita"
+    }
+  ]
+}

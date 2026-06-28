@@ -1,0 +1,5 @@
+{
+  "name": "kavita-admin-worker",
+  "private": true,
+  "type": "module"
+}
