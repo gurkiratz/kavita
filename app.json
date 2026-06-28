@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "kavita-scaffold",
-    "slug": "kavita-scaffold",
+    "name": "Kavita",
+    "slug": "kavita",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "kavitascaffold",
+    "scheme": "kavita",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"

@@ -9,18 +9,22 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#1F1A12',
+    background: '#FBF9F4',
+    backgroundElement: '#F1ECE1',
+    backgroundSelected: '#E7DFCE',
+    textSecondary: '#6B6250',
+    accent: '#9C5B2E',
+    border: '#E3DCCB',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F2ECDE',
+    background: '#15130F',
+    backgroundElement: '#211E18',
+    backgroundSelected: '#2C281F',
+    textSecondary: '#A89F8C',
+    accent: '#D9A441',
+    border: '#2C281F',
   },
 } as const;
 
@@ -63,3 +67,5 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+/** Caps the reading column on wide screens so the web layout stays close to mobile. */
+export const ContentMaxWidth = 640;
