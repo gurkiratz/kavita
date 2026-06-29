@@ -100,7 +100,7 @@ export default {
       if (poet) poem.poet = poet;
       if (tags.length) poem.tags = tags;
 
-      poems.unshift(poem); // newest first
+      poems.push(poem);
       await env.BUCKET.put(POEMS_KEY, JSON.stringify(poems, null, 2), {
         httpMetadata: { contentType: 'application/json' },
       });

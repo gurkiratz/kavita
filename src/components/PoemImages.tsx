@@ -9,6 +9,13 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -33,7 +40,6 @@ function ScanImage({
   label: string;
   bg: string;
 }) {
-  // Default to a portrait ratio until the real dimensions arrive from onLoad.
   const [aspectRatio, setAspectRatio] = useState(0.7);
 
   return (
@@ -76,7 +82,104 @@ export function PoemImages({ sources, alt }: Props) {
   );
 }
 
-/** Fullscreen modal with horizontal paging between all images. */
+/** A single fullscreen image with pinch-to-zoom, pan, and double-tap zoom. */
+function ZoomablePage({
+  source,
+  width,
+  height,
+  zoomed,
+  onZoomChange,
+  onClose,
+}: {
+  source: PoemImageSource;
+  width: number;
+  height: number;
+  zoomed: boolean;
+  onZoomChange: (z: boolean) => void;
+  onClose: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const start = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+
+  function reset() {
+    'worklet';
+    scale.value = withTiming(1);
+    start.value = 1;
+    tx.value = withTiming(0);
+    ty.value = withTiming(0);
+    startX.value = 0;
+    startY.value = 0;
+  }
+
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, start.value * e.scale);
+    })
+    .onEnd(() => {
+      start.value = scale.value;
+      if (scale.value <= 1.01) {
+        reset();
+        runOnJS(onZoomChange)(false);
+      } else {
+        runOnJS(onZoomChange)(true);
+      }
+    });
+
+  // Pan only while zoomed, so it doesn't steal horizontal swipes from the pager.
+  const pan = Gesture.Pan()
+    .enabled(zoomed)
+    .onUpdate((e) => {
+      tx.value = startX.value + e.translationX;
+      ty.value = startY.value + e.translationY;
+    })
+    .onEnd(() => {
+      startX.value = tx.value;
+      startY.value = ty.value;
+    });
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      if (scale.value > 1) {
+        reset();
+        runOnJS(onZoomChange)(false);
+      } else {
+        scale.value = withTiming(2.5);
+        start.value = 2.5;
+        runOnJS(onZoomChange)(true);
+      }
+    });
+
+  const singleTap = Gesture.Tap()
+    .numberOfTaps(1)
+    .onEnd(() => {
+      if (scale.value <= 1) runOnJS(onClose)();
+    });
+
+  const gesture = Gesture.Simultaneous(pinch, pan, Gesture.Exclusive(doubleTap, singleTap));
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+        <Animated.Image
+          source={source}
+          style={[{ width, height }, animatedStyle]}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+/** Fullscreen modal with horizontal paging + per-image zoom. */
 function ImageViewer({
   sources,
   startIndex,
@@ -90,9 +193,13 @@ function ImageViewer({
   const insets = useSafeAreaInsets();
   const visible = startIndex !== null;
   const [page, setPage] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
 
   useEffect(() => {
-    if (startIndex !== null) setPage(startIndex);
+    if (startIndex !== null) {
+      setPage(startIndex);
+      setZoomed(false);
+    }
   }, [startIndex]);
 
   return (
@@ -102,12 +209,13 @@ function ImageViewer({
       animationType="fade"
       statusBarTranslucent
       onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <GestureHandlerRootView style={styles.backdrop}>
         {visible && (
           <FlatList
             data={sources}
             horizontal
             pagingEnabled
+            scrollEnabled={!zoomed}
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_, i) => String(i)}
             initialScrollIndex={startIndex ?? 0}
@@ -116,9 +224,14 @@ function ImageViewer({
               setPage(Math.round(e.nativeEvent.contentOffset.x / width))
             }
             renderItem={({ item }) => (
-              <Pressable style={{ width, height }} onPress={onClose}>
-                <Image source={item} style={{ width, height }} contentFit="contain" />
-              </Pressable>
+              <ZoomablePage
+                source={item}
+                width={width}
+                height={height}
+                zoomed={zoomed}
+                onZoomChange={setZoomed}
+                onClose={onClose}
+              />
             )}
           />
         )}
@@ -132,14 +245,14 @@ function ImageViewer({
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
 
-        {sources.length > 1 && (
+        {sources.length > 1 && !zoomed && (
           <View style={[styles.counter, { bottom: insets.bottom + Spacing.four }]}>
             <Text style={styles.counterText}>
               {page + 1} / {sources.length}
             </Text>
           </View>
         )}
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

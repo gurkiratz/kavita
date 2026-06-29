@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { Colors } from '@/constants/theme';
 import { KeepAwakeProvider } from '@/context/KeepAwakeContext';
 import { PoemsProvider } from '@/context/PoemsContext';
+import { TextSizeProvider } from '@/context/TextSizeContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function RootLayout() {
@@ -18,6 +19,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <KeepAwakeProvider>
           <PoemsProvider>
+            <TextSizeProvider>
             <Stack
             screenOptions={{
               header: (props) => <AppHeader {...props} />,
@@ -27,6 +29,7 @@ export default function RootLayout() {
             <Stack.Screen name="poem/[id]" options={{ title: '', headerBackTitle: 'Kavita' }} />
             </Stack>
             <StatusBar style="auto" />
+            </TextSizeProvider>
           </PoemsProvider>
         </KeepAwakeProvider>
       </SafeAreaProvider>

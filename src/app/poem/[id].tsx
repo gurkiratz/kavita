@@ -1,12 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentShell } from '@/components/ContentShell';
 import { PoemImages } from '@/components/PoemImages';
 import { Fonts, Spacing } from '@/constants/theme';
 import { usePoems } from '@/context/PoemsContext';
+import { useTextSize } from '@/context/TextSizeContext';
 import { useTheme } from '@/hooks/use-theme';
 import { resolvePoemImage, type PoemImageSource } from '@/lib/imageMap';
 
@@ -17,6 +18,7 @@ export default function PoemScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { poems } = usePoems();
+  const { scale, increase, decrease, canIncrease, canDecrease } = useTextSize();
 
   const poem = poems.find((p) => p.id === id);
   const [script, setScript] = useState<Script>('gurmukhi');
@@ -57,34 +59,60 @@ export default function PoemScreen() {
         <Text style={[styles.poet, { color: c.accent }]}>{poem.poet}</Text>
       )}
 
-      {both && (
-        <View style={[styles.toggle, { borderColor: c.border }]}>
-          {(['gurmukhi', 'roman'] as const).map((s) => {
-            const selected = script === s;
-            return (
-              <Text
-                key={s}
-                onPress={() => setScript(s)}
-                style={[
-                  styles.toggleItem,
-                  {
-                    backgroundColor: selected ? c.accent : 'transparent',
-                    color: selected ? c.background : c.textSecondary,
-                  },
-                ]}>
-                {s === 'gurmukhi' ? 'ਪੰਜਾਬੀ' : 'Roman'}
-              </Text>
-            );
-          })}
+      {(both || !!body) && (
+        <View style={styles.controls}>
+          {both ? (
+            <View style={[styles.toggle, { borderColor: c.border }]}>
+              {(['gurmukhi', 'roman'] as const).map((s) => {
+                const selected = script === s;
+                return (
+                  <Text
+                    key={s}
+                    onPress={() => setScript(s)}
+                    style={[
+                      styles.toggleItem,
+                      {
+                        backgroundColor: selected ? c.accent : 'transparent',
+                        color: selected ? c.background : c.textSecondary,
+                      },
+                    ]}>
+                    {s === 'gurmukhi' ? 'ਪੰਜਾਬੀ' : 'Roman'}
+                  </Text>
+                );
+              })}
+            </View>
+          ) : (
+            <View />
+          )}
+
+          {!!body && (
+            <View style={styles.sizeRow}>
+              <Pressable
+                onPress={decrease}
+                disabled={!canDecrease}
+                accessibilityLabel="Decrease text size"
+                style={[styles.sizeBtn, { borderColor: c.border, opacity: canDecrease ? 1 : 0.4 }]}>
+                <Text style={[styles.sizeBtnSmall, { color: c.text }]}>A−</Text>
+              </Pressable>
+              <Pressable
+                onPress={increase}
+                disabled={!canIncrease}
+                accessibilityLabel="Increase text size"
+                style={[styles.sizeBtn, { borderColor: c.border, opacity: canIncrease ? 1 : 0.4 }]}>
+                <Text style={[styles.sizeBtnLarge, { color: c.text }]}>A+</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       )}
 
       {body ? (
         <Text
           style={[
-            styles.body,
             { color: c.text },
-            bodyIsGurmukhi && { fontFamily: Fonts.serif, fontSize: 20, lineHeight: 34 },
+            bodyIsGurmukhi
+              ? { fontFamily: Fonts.serif, fontSize: 20 * scale, lineHeight: 34 * scale }
+              : { fontSize: 17 * scale, lineHeight: 28 * scale },
           ]}>
           {body}
         </Text>
@@ -136,9 +164,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     overflow: 'hidden',
   },
-  body: {
-    fontSize: 17,
-    lineHeight: 28,
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sizeRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginLeft: 'auto',
+  },
+  sizeBtn: {
+    width: 42,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sizeBtnSmall: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sizeBtnLarge: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   empty: {
     fontSize: 15,
