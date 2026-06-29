@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentShell } from '@/components/ContentShell';
@@ -23,7 +23,7 @@ function PoemDivider() {
 export default function HomeScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
-  const { poems, refreshing, refresh } = usePoems();
+  const { poems, refreshing, refresh, error } = usePoems();
 
   const [query, setQuery] = useState('');
 
@@ -47,6 +47,15 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <SearchBar value={query} onChange={setQuery} />
             <KeepAwakeToggle />
+            {error && (
+              <Pressable
+                onPress={refresh}
+                style={[styles.banner, { backgroundColor: c.backgroundElement, borderColor: c.border }]}>
+                <Text style={[styles.bannerText, { color: c.textSecondary }]}>
+                  Couldn’t load the latest poems. Tap to retry.
+                </Text>
+              </Pressable>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -73,6 +82,15 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.two,
     marginBottom: Spacing.two,
+  },
+  banner: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  bannerText: {
+    fontSize: 13,
   },
   empty: {
     textAlign: 'center',

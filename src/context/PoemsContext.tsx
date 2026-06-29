@@ -19,6 +19,8 @@ type PoemsContextValue = {
   poems: Poem[];
   source: Source;
   refreshing: boolean;
+  /** True when the last remote fetch failed (offline / unreachable / timed out). */
+  error: boolean;
   /** Epoch ms of the last successful remote fetch, if known. */
   updatedAt: number | null;
   /** Re-fetch from the remote host (no-op when remote is disabled). */
@@ -35,22 +37,29 @@ export function PoemsProvider({ children }: { children: ReactNode }) {
   const [poems, setPoems] = useState<Poem[]>(bundledPoems);
   const [source, setSource] = useState<Source>('bundled');
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     if (!REMOTE_DATA_ENABLED) return;
     setRefreshing(true);
-    try {
-      const remote = await fetchRemotePoems();
-      setPoems(remote);
-      setSource('remote');
-      setUpdatedAt(Date.now());
-      void saveCachedPoems(remote);
-    } catch {
-      // Offline or fetch failed — keep whatever we already have (cached/bundled).
-    } finally {
-      setRefreshing(false);
+    setError(false);
+    // Try a couple of times — the first hit to r2.dev can be slow/cold.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const remote = await fetchRemotePoems();
+        setPoems(remote);
+        setSource('remote');
+        setUpdatedAt(Date.now());
+        void saveCachedPoems(remote);
+        setRefreshing(false);
+        return;
+      } catch {
+        // keep the previous data; fall through to retry / error
+      }
     }
+    setError(true);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -72,7 +81,7 @@ export function PoemsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <PoemsContext.Provider value={{ poems, source, refreshing, updatedAt, refresh }}>
+    <PoemsContext.Provider value={{ poems, source, refreshing, error, updatedAt, refresh }}>
       {children}
     </PoemsContext.Provider>
   );
