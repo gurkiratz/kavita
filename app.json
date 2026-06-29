@@ -3,21 +3,18 @@
     "name": "Kavita",
     "slug": "kavita",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "orientation": "default",
+    "icon": "./assets/images/logo.png",
     "scheme": "kavita",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.gurkiratsingh.kavita"
     },
     "android": {
       "package": "com.gurkiratsingh.kavita",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#034081",
+        "foregroundImage": "./assets/images/logo-foreground.png"
       },
       "predictiveBackGestureEnabled": false
     },
