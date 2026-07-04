@@ -1,5 +1,13 @@
 {
   "name": "kavita-admin-worker",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.107.0"
+  }
 }

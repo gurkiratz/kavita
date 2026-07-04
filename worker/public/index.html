@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kavita · Admin</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="wrap">
+  <h1 id="heading">ਕਵਿਤਾ · Add a poem</h1>
+  <p class="sub" id="subheading">Saves directly to your collection. Line breaks and spacing are kept exactly.</p>
+
+  <label>Password <span class="hint">(remembered on this device)</span></label>
+  <input id="token" type="password" autocomplete="current-password" />
+
+  <form id="poemForm">
+    <input type="hidden" id="editId" name="editId" value="" />
+
+    <div class="row">
+      <div>
+        <label>Title — Gurmukhi</label>
+        <input name="titleGurmukhi" />
+      </div>
+      <div>
+        <label>Title — Roman</label>
+        <input name="titleRoman" />
+      </div>
+    </div>
+
+    <label>Punjabi (Gurmukhi) <span class="hint">paste with real line breaks</span></label>
+    <textarea name="gurmukhi"></textarea>
+
+    <label>English / Roman <span class="hint">paste with real line breaks</span></label>
+    <textarea name="roman"></textarea>
+
+    <div class="row">
+      <div>
+        <label>Poet <span class="hint">(optional)</span></label>
+        <input name="poet" />
+      </div>
+      <div>
+        <label>Tags <span class="hint">(comma separated)</span></label>
+        <input name="tags" />
+      </div>
+    </div>
+
+    <label>Images <span class="hint" id="imagesHint">(optional — reorder, remove, or add)</span></label>
+    <div id="imageEditor" class="image-editor"></div>
+    <input id="newImages" name="images" type="file" accept="image/*" multiple />
+
+    <div class="actions">
+      <button id="submit" type="submit">Save poem</button>
+      <button id="cancelEdit" type="button" class="secondary hidden">Cancel edit</button>
+    </div>
+  </form>
+
+  <div id="status" class="status"></div>
+
+  <h2>In your collection</h2>
+  <p class="sub" id="count"></p>
+  <div id="list"></div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
