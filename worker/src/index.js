@@ -5,24 +5,26 @@
 // POST /poem       → create poem (auth required)
 // PUT  /poem/:id   → update poem (auth required)
 
-import { json } from './utils.js';
-import { requireAuth } from './auth.js';
-import { createPoem, getPoemsText, updatePoem } from './poems.js';
+import { requireAuth } from "./auth.js";
+import { createPoem, getPoemsText, updatePoem } from "./poems.js";
+import { json } from "./utils.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (request.method === 'GET' && url.pathname === '/config') {
-      return json({ r2PublicBase: env.R2_PUBLIC_BASE || '' });
+    if (request.method === "GET" && url.pathname === "/config") {
+      return json({ r2PublicBase: env.R2_PUBLIC_BASE || "" });
     }
 
-    if (request.method === 'GET' && url.pathname === '/poems') {
+    if (request.method === "GET" && url.pathname === "/poems") {
       const body = await getPoemsText(env);
-      return new Response(body, { headers: { 'content-type': 'application/json' } });
+      return new Response(body, {
+        headers: { "content-type": "application/json" },
+      });
     }
 
-    if (request.method === 'POST' && url.pathname === '/poem') {
+    if (request.method === "POST" && url.pathname === "/poem") {
       const denied = requireAuth(request, env);
       if (denied) return denied;
 
@@ -30,7 +32,7 @@ export default {
       try {
         form = await request.formData();
       } catch {
-        return json({ error: 'Expected a form submission.' }, 400);
+        return json({ error: "Expected a form submission." }, 400);
       }
 
       const result = await createPoem(env, form);
@@ -39,7 +41,7 @@ export default {
     }
 
     const editMatch = url.pathname.match(/^\/poem\/([^/]+)$/);
-    if (request.method === 'PUT' && editMatch) {
+    if (request.method === "PUT" && editMatch) {
       const denied = requireAuth(request, env);
       if (denied) return denied;
 
@@ -47,11 +49,12 @@ export default {
       try {
         form = await request.formData();
       } catch {
-        return json({ error: 'Expected a form submission.' }, 400);
+        return json({ error: "Expected a form submission." }, 400);
       }
 
       const result = await updatePoem(env, editMatch[1], form);
-      if (result.error) return json(result, result.error === 'Poem not found.' ? 404 : 400);
+      if (result.error)
+        return json(result, result.error === "Poem not found." ? 404 : 400);
       return json(result);
     }
 
