@@ -8,7 +8,10 @@
     "scheme": "kavita",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.gurkiratsingh.kavita"
+      "bundleIdentifier": "com.gurkiratsingh.kavita",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.gurkiratsingh.kavita",
@@ -27,11 +30,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#034081",
+          "image": "./assets/images/logo.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
         }
       ]
     ],

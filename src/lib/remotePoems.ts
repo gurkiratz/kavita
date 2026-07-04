@@ -34,16 +34,25 @@ export async function readCachedPoems(): Promise<{ poems: Poem[]; updatedAt: num
   }
 }
 
-/** Fetch the latest poems from the remote host (cache-busted). Throws on failure. */
-export async function fetchRemotePoems(): Promise<Poem[]> {
+/** Fetch the latest poems from the remote host (cache-busted, with a timeout). */
+export async function fetchRemotePoems(timeoutMs = 12000): Promise<Poem[]> {
   // Cache-bust via the query string only — no custom headers, so the request
   // stays "simple" and avoids a CORS preflight that static hosts often reject.
   const sep = REMOTE_POEMS_URL.includes('?') ? '&' : '?';
-  const res = await fetch(`${REMOTE_POEMS_URL}${sep}t=${Date.now()}`);
-  if (!res.ok) throw new Error(`Remote poems HTTP ${res.status}`);
-  const data = await res.json();
-  if (!isPoemArray(data)) throw new Error('Remote poems payload is not valid');
-  return data;
+  const url = `${REMOTE_POEMS_URL}${sep}t=${Date.now()}`;
+
+  // A timeout so a stalled connection can't hang the loader forever.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`Remote poems HTTP ${res.status}`);
+    const data = await res.json();
+    if (!isPoemArray(data)) throw new Error('Remote poems payload is not valid');
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Persist the freshest poems so the app has them offline next launch. */
