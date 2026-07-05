@@ -115,6 +115,16 @@ function ZoomablePage({
     startY.value = 0;
   }
 
+  // Furthest the image can be panned before its edge crosses the screen edge.
+  function maxOffset(dimension: number) {
+    'worklet';
+    return Math.max(0, (dimension * scale.value - dimension) / 2);
+  }
+  function clamp(value: number, limit: number) {
+    'worklet';
+    return Math.min(Math.max(value, -limit), limit);
+  }
+
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = Math.max(1, start.value * e.scale);
@@ -125,6 +135,13 @@ function ZoomablePage({
         reset();
         runOnJS(onZoomChange)(false);
       } else {
+        // Zooming out can leave the image off-centre — pull it back in bounds.
+        const clampedX = clamp(tx.value, maxOffset(width));
+        const clampedY = clamp(ty.value, maxOffset(height));
+        tx.value = withTiming(clampedX);
+        ty.value = withTiming(clampedY);
+        startX.value = clampedX;
+        startY.value = clampedY;
         runOnJS(onZoomChange)(true);
       }
     });
@@ -133,8 +150,8 @@ function ZoomablePage({
   const pan = Gesture.Pan()
     .enabled(zoomed)
     .onUpdate((e) => {
-      tx.value = startX.value + e.translationX;
-      ty.value = startY.value + e.translationY;
+      tx.value = clamp(startX.value + e.translationX, maxOffset(width));
+      ty.value = clamp(startY.value + e.translationY, maxOffset(height));
     })
     .onEnd(() => {
       startX.value = tx.value;

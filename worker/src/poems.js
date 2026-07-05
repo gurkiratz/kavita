@@ -5,6 +5,7 @@ import {
   resolveImageOrder,
   setPoemImages,
   uploadPoemImages,
+  validateImageFiles,
 } from './images.js';
 
 /** Raw poems.json text from R2 (byte-identical passthrough for GET /poems). */
@@ -75,6 +76,9 @@ export async function createPoem(env, form) {
   }
 
   const files = form.getAll('images').filter((f) => f && typeof f.arrayBuffer === 'function' && f.size > 0);
+  const invalid = validateImageFiles(files);
+  if (invalid) return { error: invalid };
+
   const poems = await loadPoemsArray(env);
 
   const base = slugify(fields.titleRoman) || slugify(fields.titleGurmukhi) || 'poem-' + Date.now();
@@ -110,6 +114,8 @@ export async function updatePoem(env, id, form) {
   if (imageOrder === null) return { error: 'Invalid image order.' };
 
   const newFiles = form.getAll('images').filter((f) => f && typeof f.arrayBuffer === 'function' && f.size > 0);
+  const invalid = validateImageFiles(newFiles);
+  if (invalid) return { error: invalid };
 
   let finalNames;
   if (imageOrder.length === 0 && newFiles.length === 0) {

@@ -12,6 +12,13 @@
   var editIdEl = document.getElementById("editId");
   var imageEditorEl = document.getElementById("imageEditor");
   var newImagesEl = document.getElementById("newImages");
+  var lightboxEl = document.getElementById("lightbox");
+  var lbImg = document.getElementById("lbImg");
+  var lbPrev = document.getElementById("lbPrev");
+  var lbNext = document.getElementById("lbNext");
+  var lbClose = document.getElementById("lbClose");
+  var lbCounter = document.getElementById("lbCounter");
+  var searchEl = document.getElementById("search");
 
   var KEY = "kavita_admin_token";
   var R2_BASE = "";
@@ -53,6 +60,14 @@
     });
   }
 
+  function formatBytes(bytes) {
+    if (!bytes) return "";
+    if (bytes < 1024) return bytes + " B";
+    var kb = bytes / 1024;
+    if (kb < 1024) return Math.round(kb) + " KB";
+    return (kb / 1024).toFixed(1) + " MB";
+  }
+
   function getPoemImages(p) {
     if (p.images && p.images.length) return p.images.slice();
     if (p.image) return [p.image];
@@ -70,6 +85,66 @@
     }
     var g = p.title && p.title.gurmukhi ? p.title.gurmukhi.slice(0, 1) : "?";
     return '<div class="glyph">' + esc(g) + "</div>";
+  }
+
+  // --- Fullscreen image viewer ---------------------------------------------
+  var lbSources = [];
+  var lbIndex = 0;
+
+  function lbRender() {
+    lbImg.src = lbSources[lbIndex] || "";
+    var multi = lbSources.length > 1;
+    lbPrev.classList.toggle("hidden", !multi);
+    lbNext.classList.toggle("hidden", !multi);
+    lbCounter.classList.toggle("hidden", !multi);
+    if (multi) lbCounter.textContent = lbIndex + 1 + " / " + lbSources.length;
+  }
+
+  function lbStep(delta) {
+    if (!lbSources.length) return;
+    lbIndex = (lbIndex + delta + lbSources.length) % lbSources.length;
+    lbRender();
+  }
+
+  function openLightbox(sources, startIndex) {
+    var srcs = (sources || []).filter(Boolean);
+    if (!srcs.length) return;
+    lbSources = srcs;
+    lbIndex = Math.min(Math.max(startIndex || 0, 0), srcs.length - 1);
+    lbRender();
+    lightboxEl.classList.remove("hidden");
+    lightboxEl.setAttribute("aria-hidden", "false");
+  }
+
+  function closeLightbox() {
+    lightboxEl.classList.add("hidden");
+    lightboxEl.setAttribute("aria-hidden", "true");
+    lbImg.src = "";
+    lbSources = [];
+  }
+
+  lbClose.addEventListener("click", closeLightbox);
+  lbPrev.addEventListener("click", function () {
+    lbStep(-1);
+  });
+  lbNext.addEventListener("click", function () {
+    lbStep(1);
+  });
+  lightboxEl.addEventListener("click", function (e) {
+    if (e.target === lightboxEl) closeLightbox();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (lightboxEl.classList.contains("hidden")) return;
+    if (e.key === "Escape") closeLightbox();
+    else if (e.key === "ArrowLeft") lbStep(-1);
+    else if (e.key === "ArrowRight") lbStep(1);
+  });
+
+  /** URLs for the images currently shown in the editor (existing + new). */
+  function editorSources() {
+    return imageSlots.map(function (slot) {
+      return slot.type === "existing" ? scanUrl(slot.name) : slot.preview;
+    });
   }
 
   function setStatus(msg, ok) {
@@ -109,10 +184,31 @@
       .catch(function () {});
   }
 
+  function poemHaystack(p) {
+    var t = p.title || {};
+    return [t.gurmukhi, t.roman, p.id, p.poet, (p.tags || []).join(" ")]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  }
+
+  function visiblePoems() {
+    var q = searchEl.value.trim().toLowerCase();
+    if (!q) return poems;
+    return poems.filter(function (p) {
+      return poemHaystack(p).indexOf(q) !== -1;
+    });
+  }
+
   function renderList() {
-    countEl.textContent =
-      poems.length + (poems.length === 1 ? " poem" : " poems");
-    listEl.innerHTML = poems
+    searchEl.classList.toggle("hidden", poems.length === 0);
+    var shown = visiblePoems();
+    if (shown.length === poems.length) {
+      countEl.textContent = poems.length + (poems.length === 1 ? " poem" : " poems");
+    } else {
+      countEl.textContent = shown.length + " of " + poems.length + " poems";
+    }
+    listEl.innerHTML = shown
       .map(function (p) {
         var active = editingId === p.id ? " active" : "";
         return (
@@ -134,12 +230,18 @@
       .join("");
 
     listEl.querySelectorAll(".item").forEach(function (el) {
-      el.addEventListener("click", function () {
+      el.addEventListener("click", function (e) {
         var id = el.getAttribute("data-id");
         var poem = poems.find(function (p) {
           return p.id === id;
         });
-        if (poem) startEdit(poem);
+        if (!poem) return;
+        // Tapping the thumbnail opens the viewer; tapping elsewhere edits.
+        if (e.target && e.target.tagName === "IMG") {
+          openLightbox(getPoemImages(poem).map(scanUrl), 0);
+          return;
+        }
+        startEdit(poem);
       });
     });
   }
@@ -176,6 +278,7 @@
       .map(function (slot, i) {
         var src = slot.type === "existing" ? scanUrl(slot.name) : slot.preview;
         var label = slot.type === "existing" ? slot.name : slot.file.name;
+        var size = slot.type === "new" ? formatBytes(slot.file.size) : "";
         return (
           '<div class="img-row" data-idx="' +
           i +
@@ -183,9 +286,11 @@
           (src
             ? '<img src="' + esc(src) + '" alt="" />'
             : '<div class="glyph">?</div>') +
-          '<span class="name">' +
+          '<div class="info"><span class="name">' +
           esc(label) +
-          "</span>" +
+          '</span><span class="dim">' +
+          esc(size) +
+          "</span></div>" +
           '<div class="btns">' +
           '<button type="button" class="small secondary" data-act="up"' +
           (i === 0 ? " disabled" : "") +
@@ -198,6 +303,24 @@
         );
       })
       .join("");
+
+    imageEditorEl.querySelectorAll(".img-row img").forEach(function (im) {
+      im.addEventListener("click", function () {
+        var row = im.closest(".img-row");
+        var idx = parseInt(row.getAttribute("data-idx"), 10);
+        openLightbox(editorSources(), idx);
+      });
+      var fillDim = function () {
+        if (!im.naturalWidth) return;
+        var dimEl = im.closest(".img-row").querySelector(".dim");
+        var dims = im.naturalWidth + "×" + im.naturalHeight;
+        dimEl.textContent = dimEl.textContent
+          ? dims + " · " + dimEl.textContent
+          : dims;
+      };
+      if (im.complete) fillDim();
+      else im.addEventListener("load", fillDim);
+    });
 
     imageEditorEl.querySelectorAll(".img-row button").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -415,6 +538,8 @@
         btn.disabled = false;
       });
   });
+
+  searchEl.addEventListener("input", renderList);
 
   renderImageEditor();
   loadConfig().then(loadList);

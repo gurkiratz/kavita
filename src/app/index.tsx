@@ -6,10 +6,11 @@ import { ContentShell } from '@/components/ContentShell';
 import { KeepAwakeToggle } from '@/components/KeepAwakeToggle';
 import { PoemCard } from '@/components/PoemCard';
 import { SearchBar } from '@/components/SearchBar';
+import { TagFilter } from '@/components/TagFilter';
 import { Spacing } from '@/constants/theme';
 import { usePoems } from '@/context/PoemsContext';
 import { useTheme } from '@/hooks/use-theme';
-import { filterPoems } from '@/lib/search';
+import { allTags, filterPoems } from '@/lib/search';
 
 function PoemDivider() {
   const c = useTheme();
@@ -26,8 +27,18 @@ export default function HomeScreen() {
   const { poems, refreshing, refresh, error } = usePoems();
 
   const [query, setQuery] = useState('');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
 
-  const results = useMemo(() => filterPoems(poems, query, []), [poems, query]);
+  const tags = useMemo(() => allTags(poems), [poems]);
+  const results = useMemo(
+    () => filterPoems(poems, query, activeTags),
+    [poems, query, activeTags],
+  );
+
+  const toggleTag = (tag: string) =>
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
 
   return (
     <ContentShell style={{ backgroundColor: c.background }}>
@@ -46,6 +57,7 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <SearchBar value={query} onChange={setQuery} />
+            <TagFilter tags={tags} active={activeTags} onToggle={toggleTag} />
             <KeepAwakeToggle />
             {error && (
               <Pressable

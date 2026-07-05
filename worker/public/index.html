@@ -111,7 +111,43 @@
 
       <h2>In your collection</h2>
       <p class="sub" id="count"></p>
+      <input
+        id="search"
+        type="search"
+        placeholder="Search poems…"
+        autocomplete="off"
+        class="search hidden"
+      />
       <div id="list"></div>
+    </div>
+
+    <div id="lightbox" class="lightbox hidden" aria-hidden="true">
+      <button
+        type="button"
+        id="lbClose"
+        class="lb-btn lb-close"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+      <button
+        type="button"
+        id="lbPrev"
+        class="lb-btn lb-prev"
+        aria-label="Previous image"
+      >
+        ‹
+      </button>
+      <img id="lbImg" class="lb-img" alt="" />
+      <button
+        type="button"
+        id="lbNext"
+        class="lb-btn lb-next"
+        aria-label="Next image"
+      >
+        ›
+      </button>
+      <div id="lbCounter" class="lb-counter"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/gurmukhi-utils@3/dist/index.min.js"></script>
