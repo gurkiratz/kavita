@@ -62,7 +62,6 @@ export const Fonts = Platform.select({
  */
 export const Gurmukhi = {
   regular: 'OpenSatlujUni',
-  bold: 'OpenSatlujUni-Bold',
 } as const;
 
 export const Spacing = {

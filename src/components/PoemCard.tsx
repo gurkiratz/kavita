@@ -41,7 +41,7 @@ export function PoemCard({ poem }: Props) {
 
         <View style={styles.body}>
           <Text
-            style={[styles.title, { color: c.text, fontFamily: Gurmukhi.bold }]}
+            style={[styles.title, { color: c.text, fontFamily: Gurmukhi.regular }]}
             numberOfLines={2}
           >
             {poem.title.gurmukhi}

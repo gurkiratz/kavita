@@ -51,7 +51,7 @@ export default function PoemScreen() {
 
       {scans.length > 0 && <PoemImages sources={scans} alt={poem.title.roman} />}
 
-      <Text style={[styles.title, { color: c.text, fontFamily: Gurmukhi.bold }]}>
+      <Text style={[styles.title, { color: c.text, fontFamily: Gurmukhi.regular }]}>
         {poem.title.gurmukhi}
       </Text>
       <Text style={[styles.titleRoman, { color: c.textSecondary }]}>{poem.title.roman}</Text>

@@ -89,7 +89,7 @@ export function AppHeader({ options, route, back, navigation }: AppHeaderProps) 
           style={[
             styles.title,
             { color: c.text },
-            isGurmukhi(title) && { fontFamily: Gurmukhi.bold },
+            isGurmukhi(title) && { fontFamily: Gurmukhi.regular },
           ]}
           numberOfLines={1}>
           {title}

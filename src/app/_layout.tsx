@@ -22,7 +22,6 @@ export default function RootLayout() {
 
   const [fontsLoaded, fontError] = useFonts({
     OpenSatlujUni: require('../../assets/fonts/OpenSatlujUni-Regular.ttf'),
-    'OpenSatlujUni-Bold': require('../../assets/fonts/OpenSatlujUni-Bold.ttf'),
   });
 
   useEffect(() => {
