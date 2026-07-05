@@ -3,6 +3,7 @@
   var form = document.getElementById("poemForm");
   var btn = document.getElementById("submit");
   var cancelBtn = document.getElementById("cancelEdit");
+  var deleteBtn = document.getElementById("deletePoem");
   var statusEl = document.getElementById("status");
   var listEl = document.getElementById("list");
   var countEl = document.getElementById("count");
@@ -237,6 +238,7 @@
       "Saves directly to your collection. Line breaks and spacing are kept exactly.";
     btn.textContent = "Save poem";
     cancelBtn.classList.add("hidden");
+    deleteBtn.classList.add("hidden");
     renderImageEditor();
     renderList();
   }
@@ -264,6 +266,7 @@
       "Editing “" + p.id + "”. Changes save to your collection immediately.";
     btn.textContent = "Update poem";
     cancelBtn.classList.remove("hidden");
+    deleteBtn.classList.remove("hidden");
     renderImageEditor();
     renderList();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -284,6 +287,55 @@
   cancelBtn.addEventListener("click", function () {
     resetForm();
     clearStatus();
+  });
+
+  deleteBtn.addEventListener("click", function () {
+    if (!editingId) return;
+
+    var token = getToken();
+    if (!token) {
+      setStatus("Enter your password first.", false);
+      tokenEl.focus();
+      return;
+    }
+
+    var label = editingId;
+    var poem = poems.find(function (p) { return p.id === editingId; });
+    if (poem && poem.title) {
+      label = poem.title.gurmukhi || poem.title.roman || editingId;
+    }
+
+    if (!confirm('Delete “' + label + '”? This cannot be undone.')) return;
+
+    localStorage.setItem(KEY, token);
+    deleteBtn.disabled = true;
+    btn.disabled = true;
+    setStatus("Deleting…", true);
+
+    fetchJson("/poem/" + encodeURIComponent(editingId), {
+      method: "DELETE",
+      headers: authHeaders(),
+    })
+      .then(function (res) {
+        if (res.ok && res.d.ok) {
+          setStatus('Deleted “' + res.d.id + '” — now ' + res.d.count + " poems.", true);
+          resetForm();
+          return loadList();
+        }
+        if (res.status === 401) {
+          setStatus((res.d && res.d.error) || "Wrong or missing password.", false);
+          tokenEl.focus();
+          return;
+        }
+        setStatus((res.d && res.d.error) || "Something went wrong.", false);
+      })
+      .catch(function () {
+        setStatus("Network error.", false);
+      })
+      .finally(function () {
+        deleteBtn.disabled = false;
+        btn.disabled = false;
+      });
   });
 
   function buildImageOrder() {

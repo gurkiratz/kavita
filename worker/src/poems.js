@@ -133,3 +133,17 @@ export async function updatePoem(env, id, form) {
 
   return { ok: true, id, count: poems.length };
 }
+
+export async function deletePoem(env, id) {
+  const poems = await loadPoemsArray(env);
+  const idx = poems.findIndex((p) => p && p.id === id);
+  if (idx === -1) return { error: 'Poem not found.' };
+
+  const images = getPoemImages(poems[idx]);
+  if (images.length) await deleteScanImages(env, images);
+
+  poems.splice(idx, 1);
+  await savePoems(env, poems);
+
+  return { ok: true, id, count: poems.length };
+}
