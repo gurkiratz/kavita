@@ -1,9 +1,18 @@
 import type { ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { ContentMaxWidth, Spacing } from "@/constants/theme";
+import { usePoems } from "@/context/PoemsContext";
+import { useToast } from "@/context/ToastContext";
 import { useTheme } from "@/hooks/use-theme";
 
 const HEADER_HEIGHT = Platform.select({ ios: 44, default: 56 }) ?? 56;
@@ -25,6 +34,17 @@ type AppHeaderProps = {
 export function AppHeader({ options, route, back, navigation }: AppHeaderProps) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
+  const { refresh, refreshing } = usePoems();
+  const { showToast } = useToast();
+
+  const onRefresh = async () => {
+    if (refreshing) return;
+    const result = await refresh();
+    if (result === "ok") showToast("Poems refreshed", "success");
+    else if (result === "failed")
+      showToast("Couldn’t refresh — check your connection", "error");
+    else showToast("Live sync isn’t set up", "info");
+  };
 
   const title =
     typeof options.headerTitle === "string"
@@ -68,7 +88,21 @@ export function AppHeader({ options, route, back, navigation }: AppHeaderProps) 
           {title}
         </Text>
 
-        <View style={styles.side} />
+        <View style={[styles.side, styles.sideRight]}>
+          <Pressable
+            onPress={onRefresh}
+            disabled={refreshing}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Refresh poems"
+            style={styles.refresh}>
+            {refreshing ? (
+              <ActivityIndicator size="small" color={c.accent} />
+            ) : (
+              <Text style={[styles.refreshIcon, { color: c.accent }]}>↻</Text>
+            )}
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -90,6 +124,20 @@ const styles = StyleSheet.create({
   },
   side: {
     width: SIDE_WIDTH,
+  },
+  sideRight: {
+    alignItems: "flex-end",
+  },
+  refresh: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshIcon: {
+    fontSize: 22,
+    fontWeight: "600",
+    lineHeight: 24,
   },
   title: {
     flex: 1,

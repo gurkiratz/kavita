@@ -8,6 +8,7 @@ import { Colors } from '@/constants/theme';
 import { KeepAwakeProvider } from '@/context/KeepAwakeContext';
 import { PoemsProvider } from '@/context/PoemsContext';
 import { TextSizeProvider } from '@/context/TextSizeContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function RootLayout() {
@@ -17,6 +18,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <ToastProvider>
         <KeepAwakeProvider>
           <PoemsProvider>
             <TextSizeProvider>
@@ -32,6 +34,7 @@ export default function RootLayout() {
             </TextSizeProvider>
           </PoemsProvider>
         </KeepAwakeProvider>
+        </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

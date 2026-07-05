@@ -15,6 +15,9 @@ import type { Poem } from '@/lib/types';
 /** Where the currently-shown poems came from. */
 type Source = 'bundled' | 'cached' | 'remote';
 
+/** Outcome of a refresh: fetched, network failure, or remote sync is off. */
+export type RefreshResult = 'ok' | 'failed' | 'disabled';
+
 type PoemsContextValue = {
   poems: Poem[];
   source: Source;
@@ -23,8 +26,8 @@ type PoemsContextValue = {
   error: boolean;
   /** Epoch ms of the last successful remote fetch, if known. */
   updatedAt: number | null;
-  /** Re-fetch from the remote host (no-op when remote is disabled). */
-  refresh: () => void;
+  /** Re-fetch from the remote host; resolves with the outcome. */
+  refresh: () => Promise<RefreshResult>;
 };
 
 const PoemsContext = createContext<PoemsContextValue | null>(null);
@@ -40,8 +43,8 @@ export function PoemsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!REMOTE_DATA_ENABLED) return;
+  const refresh = useCallback(async (): Promise<RefreshResult> => {
+    if (!REMOTE_DATA_ENABLED) return 'disabled';
     setRefreshing(true);
     setError(false);
     // Try a couple of times — the first hit to r2.dev can be slow/cold.
@@ -53,13 +56,14 @@ export function PoemsProvider({ children }: { children: ReactNode }) {
         setUpdatedAt(Date.now());
         void saveCachedPoems(remote);
         setRefreshing(false);
-        return;
+        return 'ok';
       } catch {
         // keep the previous data; fall through to retry / error
       }
     }
     setError(true);
     setRefreshing(false);
+    return 'failed';
   }, []);
 
   useEffect(() => {
