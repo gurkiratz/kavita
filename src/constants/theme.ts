@@ -55,6 +55,16 @@ export const Fonts = Platform.select({
   },
 });
 
+/**
+ * Unicode Gurmukhi typeface (OpenSatlujUni, bundled in assets/fonts and
+ * registered in the root layout). Use these for Punjabi/Gurmukhi text so it
+ * renders in the chosen face rather than the OS fallback.
+ */
+export const Gurmukhi = {
+  regular: 'OpenSatlujUni',
+  bold: 'OpenSatlujUni-Bold',
+} as const;
+
 export const Spacing = {
   half: 2,
   one: 4,

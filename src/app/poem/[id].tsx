@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentShell } from '@/components/ContentShell';
 import { PoemImages } from '@/components/PoemImages';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Gurmukhi, Spacing } from '@/constants/theme';
 import { usePoems } from '@/context/PoemsContext';
 import { useTextSize } from '@/context/TextSizeContext';
 import { useTheme } from '@/hooks/use-theme';
@@ -51,7 +51,7 @@ export default function PoemScreen() {
 
       {scans.length > 0 && <PoemImages sources={scans} alt={poem.title.roman} />}
 
-      <Text style={[styles.title, { color: c.text, fontFamily: Fonts.serif }]}>
+      <Text style={[styles.title, { color: c.text, fontFamily: Gurmukhi.bold }]}>
         {poem.title.gurmukhi}
       </Text>
       <Text style={[styles.titleRoman, { color: c.textSecondary }]}>{poem.title.roman}</Text>
@@ -75,6 +75,7 @@ export default function PoemScreen() {
                         backgroundColor: selected ? c.accent : 'transparent',
                         color: selected ? c.background : c.textSecondary,
                       },
+                      s === 'gurmukhi' && { fontFamily: Gurmukhi.regular },
                     ]}>
                     {s === 'gurmukhi' ? 'ਪੰਜਾਬੀ' : 'Roman'}
                   </Text>
@@ -111,7 +112,7 @@ export default function PoemScreen() {
           style={[
             { color: c.text },
             bodyIsGurmukhi
-              ? { fontFamily: Fonts.serif, fontSize: 20 * scale, lineHeight: 34 * scale }
+              ? { fontFamily: Gurmukhi.regular, fontSize: 20 * scale, lineHeight: 34 * scale }
               : { fontSize: 17 * scale, lineHeight: 28 * scale },
           ]}>
           {body}

@@ -10,10 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { ContentMaxWidth, Spacing } from "@/constants/theme";
+import { ContentMaxWidth, Gurmukhi, Spacing } from "@/constants/theme";
 import { usePoems } from "@/context/PoemsContext";
 import { useToast } from "@/context/ToastContext";
 import { useTheme } from "@/hooks/use-theme";
+import { isGurmukhi } from "@/lib/search";
 
 const HEADER_HEIGHT = Platform.select({ ios: 44, default: 56 }) ?? 56;
 const SIDE_WIDTH = 96;
@@ -84,7 +85,13 @@ export function AppHeader({ options, route, back, navigation }: AppHeaderProps) 
           ) : null}
         </View>
 
-        <Text style={[styles.title, { color: c.text }]} numberOfLines={1}>
+        <Text
+          style={[
+            styles.title,
+            { color: c.text },
+            isGurmukhi(title) && { fontFamily: Gurmukhi.bold },
+          ]}
+          numberOfLines={1}>
           {title}
         </Text>
 

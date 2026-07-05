@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Fonts, Spacing } from "@/constants/theme";
+import { Gurmukhi, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { resolvePoemImage } from "@/lib/imageMap";
 import type { Poem } from "@/lib/types";
@@ -41,7 +41,7 @@ export function PoemCard({ poem }: Props) {
 
         <View style={styles.body}>
           <Text
-            style={[styles.title, { color: c.text, fontFamily: Fonts.serif }]}
+            style={[styles.title, { color: c.text, fontFamily: Gurmukhi.bold }]}
             numberOfLines={2}
           >
             {poem.title.gurmukhi}
