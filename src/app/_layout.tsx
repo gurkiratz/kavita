@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AppHeader } from '@/components/AppHeader';
 import { Colors } from '@/constants/theme';
 import { KeepAwakeProvider } from '@/context/KeepAwakeContext';
@@ -15,6 +16,10 @@ import { ToastProvider } from '@/context/ToastContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Expo Router picks this up by name — exporting it from the root layout catches
+// render errors anywhere in the tree.
+export { AppErrorBoundary as ErrorBoundary };
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -45,7 +50,22 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: c.background },
             }}>
             <Stack.Screen name="index" options={{ title: 'ਕਵਿਤਾ' }} />
-            <Stack.Screen name="poem/[id]" options={{ title: '', headerBackTitle: 'Kavita' }} />
+            <Stack.Screen
+              name="poem/[id]"
+              // A function so the option is resolved from the incoming route's
+              // params as the screen is created. The previous/next links replace
+              // the current poem, and a replace animates as a push by default —
+              // which made stepping backwards slide in from the right. `dir=prev`
+              // flips it to a pop so the motion matches the direction of travel.
+              options={({ route }) => ({
+                title: '',
+                headerBackTitle: 'Kavita',
+                animationTypeForReplace:
+                  (route.params as { dir?: string } | undefined)?.dir === 'prev'
+                    ? 'pop'
+                    : 'push',
+              })}
+            />
             </Stack>
             <StatusBar style="auto" />
             </TextSizeProvider>

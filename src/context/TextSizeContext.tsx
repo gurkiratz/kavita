@@ -9,20 +9,29 @@ import {
 } from 'react';
 
 const STORAGE_KEY = 'settings.textScale';
-const MIN = 0.8;
-const MAX = 2.0;
+export const TEXT_SCALE_MIN = 0.8;
+export const TEXT_SCALE_MAX = 2.0;
 const STEP = 0.15;
 const DEFAULT = 1;
 
-function clamp(n: number) {
-  return Math.min(MAX, Math.max(MIN, Math.round(n * 100) / 100));
+/**
+ * Clamp and round a scale. Marked as a worklet so the pinch gesture can bound the
+ * live value on the UI thread without hopping to JS on every frame.
+ */
+export function clampScale(n: number) {
+  'worklet';
+  return Math.min(TEXT_SCALE_MAX, Math.max(TEXT_SCALE_MIN, Math.round(n * 100) / 100));
 }
+
+const clamp = clampScale;
 
 type TextSizeContextValue = {
   /** Multiplier applied to poem body text only. */
   scale: number;
   increase: () => void;
   decrease: () => void;
+  /** Set the scale outright — used by pinch-to-zoom, which isn't stepped. */
+  setScale: (n: number) => void;
   canIncrease: boolean;
   canDecrease: boolean;
 };
@@ -30,26 +39,32 @@ type TextSizeContextValue = {
 const TextSizeContext = createContext<TextSizeContextValue | null>(null);
 
 export function TextSizeProvider({ children }: { children: ReactNode }) {
-  const [scale, setScale] = useState(DEFAULT);
+  const [scale, setScaleState] = useState(DEFAULT);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((v) => {
       const n = Number(v);
-      if (n) setScale(clamp(n));
+      if (n) setScaleState(clamp(n));
     });
   }, []);
 
-  const increase = useCallback(() => setScale((s) => {
+  const increase = useCallback(() => setScaleState((s) => {
     const n = clamp(s + STEP);
     void AsyncStorage.setItem(STORAGE_KEY, String(n));
     return n;
   }), []);
 
-  const decrease = useCallback(() => setScale((s) => {
+  const decrease = useCallback(() => setScaleState((s) => {
     const n = clamp(s - STEP);
     void AsyncStorage.setItem(STORAGE_KEY, String(n));
     return n;
   }), []);
+
+  const setScale = useCallback((next: number) => {
+    const n = clamp(next);
+    setScaleState(n);
+    void AsyncStorage.setItem(STORAGE_KEY, String(n));
+  }, []);
 
   return (
     <TextSizeContext.Provider
@@ -57,8 +72,9 @@ export function TextSizeProvider({ children }: { children: ReactNode }) {
         scale,
         increase,
         decrease,
-        canIncrease: scale < MAX - 0.001,
-        canDecrease: scale > MIN + 0.001,
+        setScale,
+        canIncrease: scale < TEXT_SCALE_MAX - 0.001,
+        canDecrease: scale > TEXT_SCALE_MIN + 0.001,
       }}>
       {children}
     </TextSizeContext.Provider>

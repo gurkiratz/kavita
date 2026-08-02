@@ -151,6 +151,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 17,
     fontWeight: "600",
+    // numberOfLines={1} clips to exactly one line box, so the line box has to be
+    // tall enough for the tallest glyph. Gurmukhi matras sit well above the Latin
+    // cap height, and at the default line height their tops were being cut off.
+    lineHeight: 28,
+    includeFontPadding: false,
   },
   back: {
     marginLeft: Platform.OS === "ios" ? -Spacing.one : 0,

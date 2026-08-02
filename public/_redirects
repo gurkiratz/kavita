@@ -1,0 +1,7 @@
+# Cloudflare Pages redirects. Copied verbatim into dist/ by `expo export`.
+#
+# Static rendering emits ONE shell for the dynamic route, at the literal path
+# `dist/poem/[id].html`. Rather than point a redirect at a bracketed filename,
+# `scripts/prepare-web.mjs` copies it to `poem-shell.html` after the export and
+# this rule serves it for every poem URL. The router resolves the id client-side.
+/poem/*  /poem-shell.html  200

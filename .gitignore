@@ -47,3 +47,6 @@ example
 
 # wrangler local state
 .wrangler/
+
+# planning map, decision tickets, and throwaway prototypes — local only
+.scratch/

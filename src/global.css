@@ -1,4 +1,11 @@
 :root {
+  /*
+   * Without this the browser paints its native UI — scrollbar track and thumb,
+   * form controls — in the light scheme regardless of the app's theme, which is
+   * why a white scrollbar gutter appeared beside the dark list.
+   */
+  color-scheme: light dark;
+
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
     Segoe UI Symbol, Noto Color Emoji;
@@ -6,4 +13,23 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+/*
+ * The document background behind the React root. Keep these in step with
+ * Colors.light.background / Colors.dark.background in src/constants/theme.ts —
+ * they cover the overscroll area and the first paint before React mounts.
+ */
+html,
+body,
+#root {
+  background-color: #fbf9f4;
+}
+
+@media (prefers-color-scheme: dark) {
+  html,
+  body,
+  #root {
+    background-color: #15130f;
+  }
 }

@@ -237,8 +237,115 @@ From the `worker/` folder:
 - The page also lists your **existing poems** (thumbnail + title), app-style, so you can see
   what's already in the collection; it refreshes after each save.
 
+### Copying the Unicode
+Gurmukhi lives in two encodings: you *type* GurbaniAkhar ASCII (so the Akhar font renders it),
+but R2 stores *Unicode*. Three buttons expose the Unicode:
+
+- **Copy Unicode** beside *Title — Gurmukhi* and beside the *Punjabi (Gurmukhi)* body — converts
+  whatever is in the field right now. Works before the poem has ever been saved.
+- **Copy** on each row of *In your collection* — copies that poem's stored Gurmukhi body.
+
+If a field already holds Unicode rather than Akhar ASCII, it's copied through unchanged.
+
 ### Notes
 - The form and the write API are served from the same origin, so there's no CORS to configure.
 - Only requests with the correct password can write; the page is harmless without it.
 - This and `npm run publish:r2` both write to the same R2 bucket — use whichever is handy.
 - Change the password anytime by re-running `npx wrangler secret put ADMIN_TOKEN`.
+- **The Worker does not deploy itself.** Editing anything under `worker/` — including the static
+  files in `worker/public/` — changes nothing live until you run `npx wrangler deploy` from
+  `worker/`. In August 2026 the live admin was found running four commits behind, which is why
+  the image viewer appeared not to work. Check with
+  `curl -s https://kavita-admin.<subdomain>.workers.dev/app.js | wc -l`.
+
+### Nothing is deleted any more
+
+R2 has no versioning and no undo, and for most scans it is the only copy — so the Worker never
+destroys anything. Deleting a poem, or removing an image while editing, **moves** the files:
+
+- `trash/<timestamp>/` — the deleted poem's `poem.json` plus every one of its scans.
+  Images removed during an edit go to their own timestamped folder.
+- `history/poems-<timestamp>.json` — the previous `poems.json`, written before every save.
+
+Recovering something is a copy back:
+
+```bash
+npx wrangler r2 object get kavita/trash/<timestamp>/poem.json --pipe
+npx wrangler r2 object get kavita/trash/<timestamp>/saida-1.jpg --file ./saida-1.jpg
+npx wrangler r2 object put kavita/scans/saida-1.jpg --file ./saida-1.jpg
+```
+
+**Set the expiry rules once**, or the two prefixes grow forever:
+
+```bash
+npx wrangler r2 bucket lifecycle add kavita expire-trash   trash/   --expire-days 30
+npx wrangler r2 bucket lifecycle add kavita expire-history history/ --expire-days 30
+npx wrangler r2 bucket lifecycle list kavita
+```
+
+Thirty days is the window in which a mistake is still recoverable. After that R2 cleans up on
+its own — no sweep job to run.
+
+### Concurrent saves can no longer lose a poem
+
+Saves used to read `poems.json`, edit it in memory, and write it back. Two overlapping saves
+both read the same array and the second silently discarded the first one's poem. Writes now use
+a compare-and-swap: the Worker reads the object's etag, and only stores if nothing changed in
+between. If it did, the edit is replayed against the fresh data, up to four times with backoff.
+
+If all four attempts lose the race you get *"The collection is being saved from somewhere else.
+Try again."* rather than a silent loss. R2 caps writes to one key at **1 per second**, which is
+why the retries back off instead of hammering.
+
+## Serving reads from a custom domain
+
+The app currently reads from `pub-<hash>.r2.dev`, which Cloudflare rate-limits and documents as
+unsuitable for production. Now that a browser hits it for every scan on every page view, move
+reads to a custom domain on the bucket:
+
+```bash
+npx wrangler r2 bucket domain add kavita --domain cdn.<yourdomain> --zone-id <zone-id>
+```
+
+Then point the app at it — one line in `src/config.ts`:
+
+```ts
+const DEFAULT_BASE = 'https://cdn.<yourdomain>';
+```
+
+Rebuild and redeploy the web app, and ship an app update for iOS.
+
+**One caveat worth knowing before you do it.** Caching on a custom domain breaks R2's
+read-your-writes guarantee: an overwritten object can keep serving the old version until the TTL
+expires, and publishing a poem *is* an overwrite of `poems.json`. The app already appends
+`?t=<now>` to the poems fetch (in `src/lib/remotePoems.ts`), which sidesteps the cache for that
+one request, while scans — immutable, since a re-upload gets a new filename — cache for a year.
+That combination needs no extra configuration. If it ever misbehaves, give `poems.json` a short
+cache TTL instead.
+
+## The web app (Cloudflare Pages)
+
+The same Expo app also ships as a website. It reads the same `poems.json` from R2, so publishing
+a poem updates the web app exactly as it updates the phone app — no web deploy needed for content.
+
+### One-time setup
+```bash
+npx wrangler pages project create kavita --production-branch main
+```
+
+### Every deploy
+```bash
+npm run deploy:web
+```
+That runs `expo export --platform web`, post-processes the output (`scripts/prepare-web.mjs`), and
+uploads `dist/` to Pages. To build without deploying, use `npm run build:web`.
+
+### Notes
+- `app.json` sets `web.output: "static"`, so every route is prerendered — good for links and search
+  engines. The dynamic poem route emits a single shell at `dist/poem/[id].html`.
+- `public/_redirects` and `public/_headers` are copied verbatim into `dist/` by the export.
+  The redirect maps `/poem/*` onto that shell (renamed `poem-shell.html`) so any poem URL resolves;
+  the router picks the id out of the address bar and the content arrives from R2.
+- A **new poem is reachable on the web immediately** — the client fetches `poems.json` at load.
+  A deploy is only needed when the app's *code* changes.
+- Redeploy the web app after changing anything under `src/`, `assets/`, `app.json`, or `public/`.
