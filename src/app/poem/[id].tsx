@@ -69,7 +69,13 @@ function PoemBody({
   }));
 
   return (
-    <GestureDetector gesture={gesture}>
+    // touchAction (web only) — Gesture Handler otherwise sets `touch-action:
+    // none` on the child so it can claim every pointer event, which stops the
+    // page scrolling anywhere over the body text. A poem with no scan is
+    // nothing *but* body text, so the whole screen became unscrollable on a
+    // touch device. `pan-y` hands vertical scrolling back to the browser and
+    // keeps the pinch.
+    <GestureDetector gesture={gesture} touchAction="pan-y">
       <Animated.Text
         selectable
         accessibilityHint="Pinch to change the text size"
