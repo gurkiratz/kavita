@@ -4,11 +4,18 @@
   var btn = document.getElementById("submit");
   var cancelBtn = document.getElementById("cancelEdit");
   var deleteBtn = document.getElementById("deletePoem");
-  var statusEl = document.getElementById("status");
+  var toastEl = document.getElementById("toast");
   var listEl = document.getElementById("list");
   var countEl = document.getElementById("count");
+  // Heading and subheading are cosmetic and get edited by hand — a missing one
+  // must never be able to throw mid-save. Everything below goes through setText.
   var headingEl = document.getElementById("heading");
   var subheadingEl = document.getElementById("subheading");
+
+  /** Set textContent when the element exists; do nothing when it doesn't. */
+  function setText(el, text) {
+    if (el) el.textContent = text;
+  }
   var editIdEl = document.getElementById("editId");
   var imageEditorEl = document.getElementById("imageEditor");
   var newImagesEl = document.getElementById("newImages");
@@ -21,7 +28,6 @@
   var searchEl = document.getElementById("search");
 
   var KEY = "kavita_admin_token";
-  var R2_BASE = "";
   var poems = [];
   var editingId = null;
   /** @type {{ type: 'existing', name: string } | { type: 'new', file: File, preview: string }}[]} */
@@ -54,6 +60,79 @@
     inputEl.value = toAkharField(unicodeText);
   }
 
+  // --- Clipboard -----------------------------------------------------------
+
+  /**
+   * Copy text, falling back to a hidden textarea where the async Clipboard API
+   * isn't available (insecure context, older Safari). Returns a promise of ok.
+   */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(
+        function () {
+          return true;
+        },
+        function () {
+          return legacyCopy(text);
+        }
+      );
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  /** Flash a button's label, then restore it. */
+  function flashButton(btnEl, label) {
+    if (btnEl._restore) clearTimeout(btnEl._restore);
+    else btnEl._label = btnEl.textContent;
+    btnEl.textContent = label;
+    btnEl.classList.add("copied");
+    btnEl._restore = setTimeout(function () {
+      btnEl.textContent = btnEl._label;
+      btnEl.classList.remove("copied");
+      btnEl._restore = null;
+    }, 1400);
+  }
+
+  /** Copy `text` and report the outcome on `btnEl`. */
+  function copyFromButton(btnEl, text, emptyLabel) {
+    if (!text) {
+      flashButton(btnEl, emptyLabel || "Nothing to copy");
+      return;
+    }
+    copyText(text).then(function (ok) {
+      flashButton(btnEl, ok ? "Copied ✓" : "Copy failed");
+    });
+  }
+
+  // Copy the Unicode for whatever Akhar ASCII is in the field right now — so the
+  // Unicode is reachable before the poem has ever been saved.
+  document.querySelectorAll("[data-copy-field]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var field = form[b.getAttribute("data-copy-field")];
+      copyFromButton(
+        b,
+        toUnicodeField(field ? field.value : ""),
+        "Field is empty"
+      );
+    });
+  });
+
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
@@ -74,13 +153,17 @@
     return [];
   }
 
+  // Same-origin, served by this Worker from whichever bucket it's bound to — so
+  // thumbnails work against the local, preview, and production buckets alike.
+  // Deliberately not built from /config's r2PublicBase: that always names the
+  // production bucket, so in dev it points at images that were never written there.
   function scanUrl(name) {
-    return R2_BASE ? R2_BASE + "/scans/" + encodeURIComponent(name) : "";
+    return "/scans/" + encodeURIComponent(name);
   }
 
   function thumbHtml(p) {
     var file = getPoemImages(p)[0];
-    if (file && R2_BASE) {
+    if (file) {
       return '<img src="' + scanUrl(file) + '" alt="" loading="lazy" />';
     }
     var g = p.title && p.title.gurmukhi ? p.title.gurmukhi.slice(0, 1) : "?";
@@ -147,14 +230,28 @@
     });
   }
 
+  /**
+   * Transient message pinned to the viewport.
+   *
+   * Replaces the old inline status line, which sat above the collection — after
+   * saving a poem you'd scrolled past, the confirmation could be off-screen.
+   * Keeps setStatus's signature so every existing call site still reads right.
+   */
+  var toastTimer = null;
   function setStatus(msg, ok) {
-    statusEl.textContent = msg;
-    statusEl.className = "status " + (ok ? "ok" : "err");
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.className = "show " + (ok ? "ok" : "err");
+    if (toastTimer) clearTimeout(toastTimer);
+    // Errors are worth reading twice; confirmations aren't.
+    toastTimer = setTimeout(clearStatus, ok ? 2600 : 6000);
   }
 
   function clearStatus() {
-    statusEl.textContent = "";
-    statusEl.className = "status";
+    if (!toastEl) return;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = null;
+    toastEl.className = "";
   }
 
   function getToken() {
@@ -165,23 +262,27 @@
     return { Authorization: "Bearer " + getToken() };
   }
 
+  /**
+   * Fetch and parse JSON without letting a non-JSON body look like a network
+   * failure. `r.json()` rejects on an HTML error page or an empty body, and that
+   * rejection used to land in the same catch as a dropped connection — so an
+   * error from the server read as "Network error." and told you nothing.
+   */
   function fetchJson(url, opts) {
     return fetch(url, opts).then(function (r) {
-      return r.json().then(function (d) {
-        return { ok: r.ok, status: r.status, d: d };
+      return r.text().then(function (text) {
+        var d = null;
+        try {
+          d = text ? JSON.parse(text) : null;
+        } catch (e) {
+          console.error(
+            "[kavita] expected JSON from " + url + ", got " + r.status + ":",
+            text.slice(0, 500)
+          );
+        }
+        return { ok: r.ok, status: r.status, d: d || {}, raw: text };
       });
     });
-  }
-
-  function loadConfig() {
-    return fetch("/config")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (cfg) {
-        R2_BASE = cfg.r2PublicBase || "";
-      })
-      .catch(function () {});
   }
 
   function poemHaystack(p) {
@@ -204,7 +305,8 @@
     searchEl.classList.toggle("hidden", poems.length === 0);
     var shown = visiblePoems();
     if (shown.length === poems.length) {
-      countEl.textContent = poems.length + (poems.length === 1 ? " poem" : " poems");
+      countEl.textContent =
+        poems.length + (poems.length === 1 ? " poem" : " poems");
     } else {
       countEl.textContent = shown.length + " of " + poems.length + " poems";
     }
@@ -224,6 +326,9 @@
           '<div class="r">' +
           esc(p.title && p.title.roman) +
           "</div></div>" +
+          (p.gurmukhi
+            ? '<button type="button" class="copy-btn row-copy" title="Copy this poem’s Gurmukhi Unicode">Copy</button>'
+            : "") +
           '<span class="edit-hint">Edit</span></div>'
         );
       })
@@ -236,6 +341,12 @@
           return p.id === id;
         });
         if (!poem) return;
+        // The stored body is already Unicode — copy it straight through.
+        var copyBtn = e.target.closest && e.target.closest(".row-copy");
+        if (copyBtn) {
+          copyFromButton(copyBtn, poem.gurmukhi, "No Gurmukhi");
+          return;
+        }
         // Tapping the thumbnail opens the viewer; tapping elsewhere edits.
         if (e.target && e.target.tagName === "IMG") {
           openLightbox(getPoemImages(poem).map(scanUrl), 0);
@@ -255,8 +366,11 @@
         poems = Array.isArray(data) ? data : [];
         renderList();
       })
-      .catch(function () {
-        countEl.textContent = "";
+      .catch(function (err) {
+        // Blanking the count silently used to be the whole error report, so a
+        // render bug in here looked identical to the collection being empty.
+        console.error("[kavita] couldn’t load the collection", err);
+        countEl.textContent = "Couldn’t load the collection.";
       });
   }
 
@@ -264,6 +378,61 @@
     imageSlots.forEach(function (slot) {
       if (slot.type === "new" && slot.preview)
         URL.revokeObjectURL(slot.preview);
+    });
+  }
+
+  /**
+   * Drag a row onto another to move it there.
+   *
+   * Reordering eight scans with ↑/↓ took a click per position; this is one drag.
+   * The buttons stay — drag is mouse-only, so they remain the keyboard and touch
+   * path. Index comes off data-idx, which renderImageEditor rewrites each pass.
+   */
+  var dragFromIdx = null;
+
+  function wireImageDrag() {
+    imageEditorEl.querySelectorAll(".img-row").forEach(function (row) {
+      row.addEventListener("dragstart", function (e) {
+        dragFromIdx = parseInt(row.getAttribute("data-idx"), 10);
+        row.classList.add("dragging");
+        // Firefox won't start a drag unless some data is set.
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+          try {
+            e.dataTransfer.setData("text/plain", String(dragFromIdx));
+          } catch (err) {}
+        }
+      });
+
+      row.addEventListener("dragend", function () {
+        dragFromIdx = null;
+        imageEditorEl.querySelectorAll(".img-row").forEach(function (o) {
+          o.classList.remove("dragging", "over");
+        });
+      });
+
+      row.addEventListener("dragover", function (e) {
+        if (dragFromIdx === null) return;
+        e.preventDefault(); // without this, drop never fires
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        row.classList.add("over");
+      });
+
+      row.addEventListener("dragleave", function () {
+        row.classList.remove("over");
+      });
+
+      row.addEventListener("drop", function (e) {
+        e.preventDefault();
+        row.classList.remove("over");
+        var to = parseInt(row.getAttribute("data-idx"), 10);
+        var from = dragFromIdx;
+        dragFromIdx = null;
+        if (from === null || isNaN(to) || from === to) return;
+        var moved = imageSlots.splice(from, 1)[0];
+        imageSlots.splice(to, 0, moved);
+        renderImageEditor();
+      });
     });
   }
 
@@ -280,9 +449,10 @@
         var label = slot.type === "existing" ? slot.name : slot.file.name;
         var size = slot.type === "new" ? formatBytes(slot.file.size) : "";
         return (
-          '<div class="img-row" data-idx="' +
+          '<div class="img-row" draggable="true" data-idx="' +
           i +
           '">' +
+          '<span class="grip" aria-hidden="true">⠿</span>' +
           (src
             ? '<img src="' + esc(src) + '" alt="" />'
             : '<div class="glyph">?</div>') +
@@ -292,17 +462,21 @@
           esc(size) +
           "</span></div>" +
           '<div class="btns">' +
-          '<button type="button" class="small secondary" data-act="up"' +
+          // Kept alongside drag: the only path that works from a keyboard, and
+          // the only one that works at all on touch.
+          '<button type="button" class="small secondary" data-act="up" aria-label="Move up"' +
           (i === 0 ? " disabled" : "") +
           ">↑</button>" +
-          '<button type="button" class="small secondary" data-act="down"' +
+          '<button type="button" class="small secondary" data-act="down" aria-label="Move down"' +
           (i === imageSlots.length - 1 ? " disabled" : "") +
           ">↓</button>" +
-          '<button type="button" class="small secondary" data-act="remove">✕</button>' +
+          '<button type="button" class="small secondary" data-act="remove" aria-label="Remove image">✕</button>' +
           "</div></div>"
         );
       })
       .join("");
+
+    wireImageDrag();
 
     imageEditorEl.querySelectorAll(".img-row img").forEach(function (im) {
       im.addEventListener("click", function () {
@@ -356,9 +530,8 @@
     form.reset();
     tokenEl.value = localStorage.getItem(KEY) || "";
     newImagesEl.value = "";
-    headingEl.textContent = "ਕਵਿਤਾ · Add a poem";
-    subheadingEl.textContent =
-      "Saves directly to your collection. Line breaks and spacing are kept exactly.";
+    setText(headingEl, "Add a ਕਵਿਤਾ");
+    setText(subheadingEl, "");
     btn.textContent = "Save poem";
     cancelBtn.classList.add("hidden");
     deleteBtn.classList.add("hidden");
@@ -384,9 +557,11 @@
       return { type: "existing", name: name };
     });
 
-    headingEl.textContent = "ਕਵਿਤਾ · Edit poem";
-    subheadingEl.textContent =
-      "Editing “" + p.id + "”. Changes save to your collection immediately.";
+    setText(headingEl, "Edit ਕਵਿਤਾ");
+    // Parenthesised deliberately: `"a" + x || y` binds as `("a" + x) || y`, which
+    // is always truthy, so the fallbacks never fired.
+    var label = (p.title && (p.title.gurmukhi || p.title.roman)) || p.id;
+    setText(subheadingEl, "Editing “" + label + "” — changes save immediately.");
     btn.textContent = "Update poem";
     cancelBtn.classList.remove("hidden");
     deleteBtn.classList.remove("hidden");
@@ -423,12 +598,21 @@
     }
 
     var label = editingId;
-    var poem = poems.find(function (p) { return p.id === editingId; });
+    var poem = poems.find(function (p) {
+      return p.id === editingId;
+    });
     if (poem && poem.title) {
       label = poem.title.gurmukhi || poem.title.roman || editingId;
     }
 
-    if (!confirm('Delete “' + label + '”? This cannot be undone.')) return;
+    if (
+      !confirm(
+        "Delete “" +
+          label +
+          "”?\n\nIt moves to the trash with its images, and stays recoverable for 30 days."
+      )
+    )
+      return;
 
     localStorage.setItem(KEY, token);
     deleteBtn.disabled = true;
@@ -439,21 +623,38 @@
       method: "DELETE",
       headers: authHeaders(),
     })
+      .catch(function (err) {
+        console.error("[kavita] DELETE failed", err);
+        setStatus(
+          "Couldn’t reach the server. Reload to check whether it was deleted.",
+          false
+        );
+        return null;
+      })
       .then(function (res) {
+        if (!res) return;
         if (res.ok && res.d.ok) {
-          setStatus('Deleted “' + res.d.id + '” — now ' + res.d.count + " poems.", true);
+          setStatus(
+            "Deleted “" + res.d.id + "” — now " + res.d.count + " poems.",
+            true
+          );
           resetForm();
           return loadList();
         }
         if (res.status === 401) {
-          setStatus((res.d && res.d.error) || "Wrong or missing password.", false);
+          setStatus(
+            (res.d && res.d.error) || "Wrong or missing password.",
+            false
+          );
           tokenEl.focus();
           return;
         }
+        console.error("[kavita] delete rejected", res.status, res.raw);
         setStatus((res.d && res.d.error) || "Something went wrong.", false);
       })
-      .catch(function () {
-        setStatus("Network error.", false);
+      .catch(function (err) {
+        console.error("[kavita] refresh after delete failed", err);
+        setStatus("Deleted, but the page couldn’t refresh. Reload to see it.", false);
       })
       .finally(function () {
         deleteBtn.disabled = false;
@@ -514,11 +715,24 @@
     btn.disabled = true;
     setStatus(editingId ? "Updating…" : "Saving…", true);
 
+    var saving = editingId;
+
     fetchJson(url, { method: method, headers: authHeaders(), body: fd })
+      .catch(function (err) {
+        // Only a genuinely failed request reaches here — the response never
+        // arrived. Anything after this point is our own code.
+        console.error("[kavita] " + method + " " + url + " failed", err);
+        setStatus(
+          "Couldn’t reach the server. The poem may not have been saved — reload to check.",
+          false
+        );
+        return null;
+      })
       .then(function (res) {
+        if (!res) return;
         if (res.ok && res.d.ok) {
           setStatus(
-            (editingId ? "Updated" : "Saved") +
+            (saving ? "Updated" : "Saved") +
               ' "' +
               res.d.id +
               '" — now ' +
@@ -529,10 +743,17 @@
           resetForm();
           return loadList();
         }
-        setStatus(res.d.error || "Something went wrong.", false);
+        console.error("[kavita] save rejected", res.status, res.raw);
+        setStatus(
+          res.d.error || "Something went wrong (HTTP " + res.status + ").",
+          false
+        );
       })
-      .catch(function () {
-        setStatus("Network error.", false);
+      .catch(function (err) {
+        // The save itself succeeded — this is the page failing to refresh, which
+        // must not be reported as a network problem.
+        console.error("[kavita] refresh after save failed", err);
+        setStatus("Saved, but the page couldn’t refresh. Reload to see it.", false);
       })
       .finally(function () {
         btn.disabled = false;
@@ -541,6 +762,36 @@
 
   searchEl.addEventListener("input", renderList);
 
+  // Keyboard shortcuts, as advertised under the form. The lightbox has its own
+  // key handler and returns early above, so these can't fire behind it.
+  document.addEventListener("keydown", function (e) {
+    if (!lightboxEl.classList.contains("hidden")) return;
+
+    var typing =
+      document.activeElement &&
+      /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      // requestSubmit runs validation and fires the submit handler, unlike submit().
+      if (form.requestSubmit) form.requestSubmit();
+      else btn.click();
+      return;
+    }
+
+    if (e.key === "Escape" && editingId) {
+      e.preventDefault();
+      resetForm();
+      clearStatus();
+      return;
+    }
+
+    if (e.key === "/" && !typing) {
+      e.preventDefault();
+      searchEl.focus();
+    }
+  });
+
   renderImageEditor();
-  loadConfig().then(loadList);
+  loadList();
 })();

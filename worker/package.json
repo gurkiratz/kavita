@@ -5,7 +5,9 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "dev:remote": "wrangler dev --remote"
+    "dev:remote": "wrangler dev --remote",
+    "seed:local": "wrangler r2 object put kavita/poems.json --file ../remote/poems.json --content-type application/json --local",
+    "dump:local": "wrangler r2 object get kavita/poems.json --local --pipe"
   },
   "devDependencies": {
     "wrangler": "^4.107.0"

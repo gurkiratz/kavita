@@ -1,38 +1,170 @@
+/*
+ * Kavita admin.
+ *
+ * Every colour goes through a custom property so the dark scheme is one media
+ * query rather than a parallel set of rules. Don't reintroduce raw hex outside
+ * the two :root blocks — the palette matches the app's Colors in
+ * src/constants/theme.ts.
+ */
 :root {
   color-scheme: light dark;
+
+  --bg: #fbf9f4;
+  --panel: #fff;
+  --panel-hover: #fff9f2;
+  --element: #f1ece1;
+  --ink: #1f1a12;
+  --muted: #6b6250;
+  --faint: #a49a86;
+  --line: #e3dccb;
+  --accent: #9c5b2e;
+  --accent-ink: #fff;
+
+  --ok: #2c4a1e;
+  --ok-bg: #e7f0e2;
+  --err: #6b1f1f;
+  --err-bg: #f4e2e2;
+  --danger: #8b2e2e;
+  --danger-line: #e3cbcb;
+
+  --shadow: 0 6px 20px rgba(31, 26, 18, 0.12);
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15130f;
+    --panel: #211e18;
+    --panel-hover: #2c281f;
+    --element: #2c281f;
+    --ink: #f2ecde;
+    --muted: #a89f8c;
+    --faint: #7d7565;
+    --line: #2c281f;
+    --accent: #d9a441;
+    --accent-ink: #15130f;
+
+    --ok: #cfe6c2;
+    --ok-bg: #24331c;
+    --err: #f0cfcf;
+    --err-bg: #3a1f1f;
+    --danger: #e39a9a;
+    --danger-line: #4a2c2c;
+
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
 @font-face {
   font-family: GurbaniAkhar;
   src: url("https://cdn.jsdelivr.net/gh/GurbaniNow/gurmukhi-fonts@2/ascii/OpenGurbaniAkhar/Bold/OpenGurbaniAkhar-Bold.woff2")
       format("woff2"),
     url("https://cdn.jsdelivr.net/gh/GurbaniNow/gurmukhi-fonts@2/ascii/OpenGurbaniAkhar/Bold/OpenGurbaniAkhar-Bold.woff")
       format("woff");
+  font-display: swap;
 }
+
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  background: #fbf9f4;
-  color: #1f1a12;
+  background: var(--bg);
+  color: var(--ink);
   font: 16px/1.5 -apple-system, system-ui, sans-serif;
 }
-.wrap {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 24px 16px 64px;
+
+/* --- Layout ------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
-h1 {
-  font-size: 22px;
-  margin: 8px 0 4px;
-}
-h2 {
+.topbar h1 {
   font-size: 18px;
-  margin: 32px 0 4px;
+  margin: 0;
+}
+.topbar .sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar .password {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.topbar .password input {
+  width: 160px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/*
+ * Two panes: compose on the left, the collection on the right and sticky, so
+ * picking a poem to edit never means scrolling back to the top. Collapses to a
+ * single column when there isn't room, with the collection moved below.
+ */
+.panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+  .collection {
+    position: static;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+.collection {
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 92px);
+  display: flex;
+  flex-direction: column;
+}
+.collection #list {
+  overflow-y: auto;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+/* --- Forms -------------------------------------------------------------- */
+
+h2 {
+  font-size: 15px;
+  margin: 0 0 4px;
 }
 p.sub {
-  color: #6b6250;
-  margin: 0 0 20px;
+  color: var(--muted);
+  margin: 0 0 12px;
+  font-size: 13px;
 }
 label {
   display: block;
@@ -44,11 +176,16 @@ input,
 textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e3dccb;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg);
   color: inherit;
   font: inherit;
+}
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 textarea {
   min-height: 140px;
@@ -61,22 +198,53 @@ textarea {
 }
 .row > div {
   flex: 1;
+  min-width: 0;
 }
+@media (max-width: 560px) {
+  .row {
+    flex-direction: column;
+  }
+}
+
+.gurmukhi-input {
+  font-family: GurbaniAkhar, sans-serif;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+/* A label with an action sitting on its right — used for the copy buttons. */
+.label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.label-row label {
+  margin-bottom: 6px;
+  min-width: 0;
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+
 button {
-  margin-top: 24px;
-  padding: 14px 18px;
+  margin-top: 20px;
+  padding: 12px 18px;
   border: 0;
   border-radius: 12px;
-  background: #9c5b2e;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
 }
 button.secondary {
   background: transparent;
-  color: #6b6250;
-  border: 1px solid #e3dccb;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 button.small {
   margin: 0;
@@ -89,6 +257,11 @@ button:disabled {
   opacity: 0.6;
   cursor: default;
 }
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .actions {
   display: flex;
   gap: 12px;
@@ -100,11 +273,11 @@ button:disabled {
   min-width: 140px;
 }
 button.icon-btn {
-  margin-top: 24px;
+  margin-top: 20px;
   flex: none;
   min-width: auto;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -112,71 +285,135 @@ button.icon-btn {
   border-radius: 12px;
 }
 button.icon-btn.danger {
-  background: #fff;
-  color: #8b2e2e;
-  border: 1px solid #e3cbcb;
+  background: var(--panel);
+  color: var(--danger);
+  border: 1px solid var(--danger-line);
 }
 button.icon-btn.danger:hover {
-  background: #f4e2e2;
+  background: var(--err-bg);
 }
-.status {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  display: none;
+
+button.copy-btn {
+  margin: 0;
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
-.status.ok {
-  display: block;
-  background: #e7f0e2;
-  color: #2c4a1e;
+button.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
-.status.err {
-  display: block;
-  background: #f4e2e2;
-  color: #6b1f1f;
+button.copy-btn.copied {
+  border-color: var(--ok);
+  background: var(--ok-bg);
+  color: var(--ok);
 }
+
 .hint {
-  color: #6b6250;
+  color: var(--muted);
   font-weight: 400;
   font-size: 12px;
 }
 .hidden {
   display: none !important;
 }
+kbd {
+  font: 11px ui-monospace, SFMono-Regular, monospace;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--muted);
+}
+
+/* --- Toast -------------------------------------------------------------- */
+
+/*
+ * Replaces the old inline .status line. That sat halfway up a scrolling page,
+ * so a save confirmation could land off-screen entirely. This is pinned to the
+ * viewport and can't be missed.
+ */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 12px);
+  z-index: 200;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 11px 20px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#toast.ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: var(--ok-bg);
+}
+#toast.err {
+  background: var(--err-bg);
+  color: var(--err);
+  border-color: var(--err-bg);
+}
+@media (prefers-reduced-motion: reduce) {
+  #toast {
+    transition: none;
+  }
+}
+
+/* --- Collection list ---------------------------------------------------- */
 
 .search {
   margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .item {
   display: flex;
   gap: 12px;
   align-items: center;
-  padding: 10px;
-  margin-top: 8px;
-  border: 1px solid #e3dccb;
-  border-radius: 12px;
-  background: #fff;
+  padding: 8px;
+  margin-top: 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
 }
 .item:hover,
 .item.active {
-  border-color: #9c5b2e;
-  background: #fff9f2;
+  border-color: var(--accent);
+  background: var(--panel-hover);
 }
 .item img,
 .item .glyph {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 8px;
   flex: none;
   object-fit: cover;
-  background: #f1ece1;
+  background: var(--element);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b6250;
-  font-size: 22px;
+  color: var(--muted);
+  font-size: 20px;
 }
 .item .meta {
   min-width: 0;
@@ -184,22 +421,25 @@ button.icon-btn.danger:hover {
 }
 .item .t {
   font-weight: 600;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .item .r {
-  color: #6b6250;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .item .edit-hint {
-  color: #9c5b2e;
+  color: var(--accent);
   font-size: 12px;
   flex: none;
 }
+
+/* --- Image editor ------------------------------------------------------- */
 
 .image-editor {
   display: flex;
@@ -212,9 +452,30 @@ button.icon-btn.danger:hover {
   gap: 10px;
   align-items: center;
   padding: 8px;
-  border: 1px solid #e3dccb;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg);
+}
+
+/* Drag to reorder — the grip is the affordance, the whole row is the handle. */
+.img-row[draggable="true"] {
+  cursor: grab;
+}
+.img-row.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+.img-row.over {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+.img-row .grip {
+  flex: none;
+  color: var(--faint);
+  font-size: 17px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
 }
 .img-row img {
   width: 56px;
@@ -232,14 +493,14 @@ button.icon-btn.danger:hover {
 }
 .img-row .name {
   font-size: 13px;
-  color: #6b6250;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .img-row .dim {
   font-size: 11px;
-  color: #a49a86;
+  color: var(--faint);
 }
 .img-row .btns {
   display: flex;
@@ -247,16 +508,12 @@ button.icon-btn.danger:hover {
   flex: none;
 }
 
-.gurmukhi-input {
-  font-family: GurbaniAkhar, sans-serif;
-  font-size: 20px;
-  line-height: 1.4;
-}
-
 .item img,
 .img-row img {
   cursor: zoom-in;
 }
+
+/* --- Lightbox ----------------------------------------------------------- */
 
 .lightbox {
   position: fixed;

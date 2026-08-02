@@ -1,4 +1,4 @@
-import { EXT_BY_TYPE } from './utils.js';
+import { EXT_BY_TYPE, TRASH_PREFIX, stamp } from './utils.js';
 
 /** Reject scans larger than this — keeps the app's downloads sane. */
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -96,6 +96,27 @@ export async function resolveImageOrder(env, id, imageOrder, newFiles, knownExis
   return { names: final };
 }
 
-export async function deleteScanImages(env, names) {
-  await Promise.all(names.map((name) => env.BUCKET.delete('scans/' + name)));
+/**
+ * Retire scans instead of destroying them.
+ *
+ * R2 is the only copy of these images — it has no versioning and no undo — so a
+ * removed scan is copied under trash/ before the original is deleted. A lifecycle
+ * rule on that prefix does the eventual cleanup (see AUTHORING.md), which is the
+ * one thing R2 lifecycle rules are genuinely good for.
+ *
+ * `folder` lets a caller group everything from one operation together; a poem
+ * delete passes its own timestamped folder so the scans sit next to poem.json.
+ */
+export async function trashScanImages(env, names, folder) {
+  const dest = folder || TRASH_PREFIX + stamp() + '/';
+  await Promise.all(
+    names.map(async (name) => {
+      const obj = await env.BUCKET.get('scans/' + name);
+      if (!obj) return; // already gone — nothing to preserve
+      await env.BUCKET.put(dest + name, obj.body, {
+        httpMetadata: obj.httpMetadata,
+      });
+      await env.BUCKET.delete('scans/' + name);
+    }),
+  );
 }
